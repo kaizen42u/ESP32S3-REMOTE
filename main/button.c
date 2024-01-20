@@ -105,7 +105,7 @@ static void button_task(void *pvParameter)
                                         button_data[idx].state = BUTTON_UP;
                                 break;
                         default:
-                                LOG_ERROR("unhandled switch statement");
+                                LOG_ERROR("unhandled switch statement, aborting");
                                 vTaskDelete(NULL);
                                 break;
                         }
