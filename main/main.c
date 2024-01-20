@@ -74,9 +74,9 @@ void rssi_task()
 					if (!esp_now_is_peer_exist(peer->mac))
 					{
 						esp_now_peer_info_t peer_info = {
-						    .channel = espnow_config.channel,
-						    .encrypt = false,
-						    .ifidx = espnow_config.esp_interface,
+							.channel = espnow_config.channel,
+							.encrypt = false,
+							.ifidx = espnow_config.esp_interface,
 						};
 						memcpy(peer_info.peer_addr, peer->mac, ESP_NOW_ETH_ALEN);
 						ESP_ERROR_CHECK(esp_now_add_peer(&peer_info));
@@ -212,9 +212,9 @@ void app_main(void)
 					{
 						espnow_reply(&espnow_send_param, recv_data);
 						ESP_LOGI(TAG, "Receive %dth broadcast data from: " MACSTR ", len: %d",
-							 recv_data->seq_num,
-							 MAC2STR(recv_cb->mac_addr),
-							 recv_cb->data_len);
+								 recv_data->seq_num,
+								 MAC2STR(recv_cb->mac_addr),
+								 recv_cb->data_len);
 						print_mem(recv_data->payload, recv_data->len);
 					}
 				}

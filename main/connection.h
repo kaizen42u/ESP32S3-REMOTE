@@ -13,10 +13,7 @@
 #include "esp_now.h"
 #include "mem_probe.h"
 
-#define ESP_MAP_CHECK_NULL_HANDLE(handle) if(handle == NULL) {ESP_LOGE(TAG, "runtime nullptr error on %s:%d", __FILE__, __LINE__); return;}
-#define ESP_MAP_CHECK_NULL_HANDLE_RV(handle) if(handle == NULL) {ESP_LOGE(TAG, "runtime nullptr error on %s:%d", __FILE__, __LINE__); return NULL;}
-#define ESP_MAP_CHECK_NULL_HANDLE_MSG(handle, msg) if(handle == NULL) {ESP_LOGE(TAG, "runtime nullptr error on %s:%d | %s", __FILE__, __LINE__, msg); return;}
-#define ESP_MAP_CHECK_NULL_HANDLE_MSG_RV(handle, msg) if(handle == NULL) {ESP_LOGE(TAG, "runtime nullptr error on %s:%d | %s", __FILE__, __LINE__, msg); return NULL;}
+#define ESP_LOG_ERROR(msg) ESP_LOGE(TAG, "ERROR: %s | on %s:%d", msg, __FILE__, __LINE__);
 
 typedef enum
 {
@@ -27,6 +24,14 @@ typedef enum
         ESP_PEER_STATUS_NOREPLY,
         ESP_PEER_STATUS_MAX,
 } esp_peer_status_t;
+
+static const char __attribute__((unused)) * ESP_PEER_STATUS_STRING[] = {
+    "ESP_PEER_STATUS_UNKNOWN",
+    "ESP_PEER_STATUS_AVAILABLE",
+    "ESP_PEER_STATUS_CONNECTED",
+    "ESP_PEER_STATUS_PROTOCOL_ERROR",
+    "ESP_PEER_STATUS_NOREPLY",
+    "ESP_PEER_STATUS_MAX"};
 
 typedef struct
 {
