@@ -53,7 +53,7 @@ static bool button_up(button_data_t *button)
         return button_fell(button);
 }
 
-static void button_send_event(button_data_t *button, button_state_t prev_state)
+static void button_send_event(button_data_t *button, const button_state_t prev_state)
 {
         button_event_t new_state = {
             .pin = button->pin,
@@ -65,12 +65,13 @@ static void button_send_event(button_data_t *button, button_state_t prev_state)
                 LOG_WARNING("Send queue failed");
 }
 
-uint8_t count_num_buttons(uint64_t bitfield)
+uint8_t count_num_buttons(const uint64_t bitfield)
 {
+        uint64_t field = bitfield;
         uint8_t count = 0;
-        while (bitfield)
+        while (field)
         {
-                bitfield &= (bitfield - 1);
+                field &= (field - 1);
                 count++;
         }
         return count;
@@ -120,7 +121,7 @@ static void button_task(void *pvParameter)
         }
 }
 
-QueueHandle_t button_init()
+QueueHandle_t button_init(void)
 {
         if ((button_queue != NULL) || (button_task_handle != NULL))
         {
@@ -143,7 +144,7 @@ QueueHandle_t button_init()
         return button_queue;
 }
 
-void button_register(gpio_num_t pin, button_config_active_t inverted)
+void button_register(const gpio_num_t pin, const button_config_active_t inverted)
 {
         if (pinmask & (1ULL << pin))
         {

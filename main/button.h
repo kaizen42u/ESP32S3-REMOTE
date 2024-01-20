@@ -50,6 +50,6 @@ typedef struct
         button_state_t new_state : 8;
 } __packed button_event_t;
 
-QueueHandle_t button_init();
-void button_register(gpio_num_t pin, button_config_active_t inverted);
+QueueHandle_t button_init(void);
+void button_register(const gpio_num_t pin, const button_config_active_t inverted);
 void button_deinit(void);
