@@ -21,7 +21,7 @@
 #define BUTTON_ACTIVITY_MASK (BUTTON_PRESSED_HISTORY | BUTTON_RELEASED_HISTORY)
 #define BUTTON_LONG_PRESS_DURATION_US (1000 * 1000)
 #define BUTTON_QUEUE_DEPTH (16)
-#define BUTTON_QUEUE_MAX_WAIT_TIME (1000)
+#define BUTTON_MAX_ARRAY_SIZE (16)
 
 typedef enum
 {
@@ -30,6 +30,12 @@ typedef enum
         BUTTON_LONG,
         BUTTON_ERROR
 } button_state_t;
+
+typedef enum
+{
+        BUTTON_CONFIG_ACTIVE_LOW,
+        BUTTON_CONFIG_ACTIVE_HIGH
+} button_config_active_t;
 
 static const char __attribute__((unused)) * BUTTON_STATE_STRING[] = {
     "BUTTON_DOWN",
@@ -44,5 +50,6 @@ typedef struct
         button_state_t new_state : 8;
 } __packed button_event_t;
 
-QueueHandle_t button_init(unsigned long long pin_select);
+QueueHandle_t button_init();
+void button_register(gpio_num_t pin, button_config_active_t inverted);
 void button_deinit(void);

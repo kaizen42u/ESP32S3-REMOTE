@@ -7,13 +7,13 @@ typedef struct
 {
         gpio_num_t pin;
         button_state_t state;
-        bool inverted;
+        button_config_active_t inverted;
         uint16_t history;
         uint64_t down_time_us;
 } __packed button_data_t;
 
-int num_buttons = -1;
-button_data_t *button_data = NULL;
+uint64_t pinmask = 0;
+button_data_t button_data[BUTTON_MAX_ARRAY_SIZE];
 QueueHandle_t button_queue = NULL;
 TaskHandle_t button_task_handle = NULL;
 
@@ -42,13 +42,13 @@ static bool button_fell(button_data_t *button)
 }
 static bool button_down(button_data_t *button)
 {
-        if (button->inverted)
+        if (button->inverted == BUTTON_CONFIG_ACTIVE_LOW)
                 return button_fell(button);
         return button_rose(button);
 }
 static bool button_up(button_data_t *button)
 {
-        if (button->inverted)
+        if (button->inverted == BUTTON_CONFIG_ACTIVE_LOW)
                 return button_rose(button);
         return button_fell(button);
 }
@@ -61,14 +61,26 @@ static void button_send_event(button_data_t *button, button_state_t prev_state)
             .new_state = button->state,
         };
 
-        if (xQueueSend(button_queue, &new_state, BUTTON_QUEUE_MAX_WAIT_TIME) != pdTRUE)
+        if (xQueueSend(button_queue, &new_state, 0) != pdTRUE)
                 LOG_WARNING("Send queue failed");
+}
+
+uint8_t count_num_buttons(uint64_t bitfield)
+{
+        uint8_t count = 0;
+        while (bitfield)
+        {
+                bitfield &= (bitfield - 1);
+                count++;
+        }
+        return count;
 }
 
 static void button_task(void *pvParameter)
 {
         for (;;)
         {
+                uint8_t num_buttons = count_num_buttons(pinmask);
                 for (int idx = 0; idx < num_buttons; idx++)
                 {
                         update_button(&button_data[idx]);
@@ -108,38 +120,15 @@ static void button_task(void *pvParameter)
         }
 }
 
-QueueHandle_t button_init(uint64_t pin_select)
+QueueHandle_t button_init()
 {
-        if (num_buttons != -1)
+        if ((button_queue != NULL) || (button_task_handle != NULL))
         {
                 LOG_WARNING("already initialized");
                 return NULL;
         }
 
-        // Configure the pins
-        gpio_config_t io_conf = {
-            .pin_bit_mask = pin_select,
-            .mode = GPIO_MODE_INPUT,          // input only
-            .pull_up_en = GPIO_PULLUP_ENABLE, // with internal pullup
-            .pull_down_en = GPIO_PULLDOWN_DISABLE,
-            .intr_type = GPIO_INTR_DISABLE,
-        };
-        ESP_ERROR_CHECK(gpio_config(&io_conf));
-
-        // Scan the pin map to determine number of pins
-        num_buttons = 0;
-        for (uint8_t pin = 0; pin < GPIO_NUM_MAX; pin++)
-                if ((1ULL << pin) & pin_select)
-                        num_buttons++;
-
-        // Initialize global state and queue
-        button_data = calloc(num_buttons, sizeof(button_data_t)); // TODO: statically allow memory
-        if (button_data == NULL)
-        {
-                LOG_ERROR("calloc falied");
-                button_deinit();
-                return NULL;
-        }
+        // Initialize queue
         button_queue = xQueueCreate(BUTTON_QUEUE_DEPTH, sizeof(button_event_t)); // TODO: statically allow memory
         if (button_queue == NULL)
         {
@@ -148,28 +137,47 @@ QueueHandle_t button_init(uint64_t pin_select)
                 return NULL;
         }
 
-        // Scan the pin map to determine each pin number, populate the state
-        uint8_t idx = 0;
-        for (int pin = 0; pin < GPIO_NUM_MAX; pin++)
-                if ((1ULL << pin) & pin_select)
-                {
-                        ESP_LOGI(TAG, "Registering button on gpio: %d", pin);
-                        button_data[idx].pin = pin;
-                        button_data[idx].down_time_us = 0;
-                        button_data[idx].inverted = true;
-                        button_data[idx].state = (gpio_get_level(button_data[idx].pin) ? BUTTON_DOWN : BUTTON_UP);
-                        if (button_data[idx].inverted)
-                        {
-                                button_data[idx].history = 0xffff;
-                                button_data[idx].state = (gpio_get_level(button_data[idx].pin) ? BUTTON_UP : BUTTON_DOWN);
-                        }
-                        idx++;
-                }
-
         // Spawn a task to monitor the pins
         xTaskCreate(button_task, "button_task", 4096, NULL, 10, &button_task_handle);
 
         return button_queue;
+}
+
+void button_register(gpio_num_t pin, button_config_active_t inverted)
+{
+        if (pinmask & (1ULL << pin))
+        {
+                LOG_WARNING("This gpio pin has been already initialized as an input");
+                return;
+        }
+
+        uint8_t num_buttons = count_num_buttons(pinmask);
+        ESP_LOGI(TAG, "Registering button on gpio: %d, id: %d", pin, num_buttons);
+
+        // Configure the pins
+        gpio_config_t io_conf = {
+            .pin_bit_mask = (1ULL << pin),
+            .mode = GPIO_MODE_INPUT,          // input only
+            .pull_up_en = GPIO_PULLUP_ENABLE, // with internal pullup
+            .pull_down_en = GPIO_PULLDOWN_DISABLE,
+            .intr_type = GPIO_INTR_DISABLE,
+        };
+        ESP_ERROR_CHECK_WITHOUT_ABORT(gpio_config(&io_conf));
+
+        pinmask = pinmask | (1ULL << pin);
+        button_data[num_buttons].pin = pin;
+        button_data[num_buttons].down_time_us = 0;
+        button_data[num_buttons].inverted = inverted;
+        if (button_data[num_buttons].inverted == BUTTON_CONFIG_ACTIVE_LOW)
+        {
+                button_data[num_buttons].history = 0xffff;
+                button_data[num_buttons].state = (gpio_get_level(button_data[num_buttons].pin) ? BUTTON_UP : BUTTON_DOWN);
+        }
+        else
+        {
+                button_data[num_buttons].history = 0x0000;
+                button_data[num_buttons].state = (gpio_get_level(button_data[num_buttons].pin) ? BUTTON_DOWN : BUTTON_UP);
+        }
 }
 
 void button_deinit(void)
@@ -184,12 +192,14 @@ void button_deinit(void)
                 vQueueDelete(button_queue);
                 button_queue = NULL;
         }
-        if (button_data != NULL)
-        {
-                for (int idx = 0; idx < num_buttons; idx++)
-                        gpio_reset_pin(button_data[idx].pin);
-                free(button_data);
-                button_data = NULL;
-        }
-        num_buttons = -1;
+
+        gpio_config_t io_conf = {
+            .pin_bit_mask = pinmask,
+            .mode = GPIO_MODE_DISABLE,
+            .pull_up_en = GPIO_PULLUP_DISABLE,
+            .pull_down_en = GPIO_PULLDOWN_DISABLE,
+            .intr_type = GPIO_INTR_DISABLE,
+        };
+        ESP_ERROR_CHECK(gpio_config(&io_conf));
+        pinmask = 0;
 }

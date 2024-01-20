@@ -135,7 +135,14 @@ void app_main(void)
 		vTaskDelete(NULL);
 	}
 
-	QueueHandle_t button_event_queue = button_init(GPIO_INPUT_PIN_SEL);
+	QueueHandle_t button_event_queue = button_init();
+	button_register(GPIO_BUTTON_UP, BUTTON_CONFIG_ACTIVE_LOW);
+	button_register(GPIO_BUTTON_DOWN, BUTTON_CONFIG_ACTIVE_LOW);
+	button_register(GPIO_BUTTON_LEFT, BUTTON_CONFIG_ACTIVE_LOW);
+	button_register(GPIO_BUTTON_RIGHT, BUTTON_CONFIG_ACTIVE_LOW);
+	button_register(GPIO_BUTTON_SHOOT, BUTTON_CONFIG_ACTIVE_LOW);
+	button_register(GPIO_BUTTON_TILT_LEFT, BUTTON_CONFIG_ACTIVE_LOW);
+	button_register(GPIO_BUTTON_TILT_RIGHT, BUTTON_CONFIG_ACTIVE_LOW);
 
 	xTaskCreate(rssi_task, "rssi_task", 4096, NULL, 4, NULL);
 
