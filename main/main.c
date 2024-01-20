@@ -74,9 +74,9 @@ void rssi_task()
 					if (!esp_now_is_peer_exist(peer->mac))
 					{
 						esp_now_peer_info_t peer_info = {
-						    .channel = espnow_config.channel,
-						    .encrypt = false,
-						    .ifidx = espnow_config.esp_interface,
+							.channel = espnow_config.channel,
+							.encrypt = false,
+							.ifidx = espnow_config.esp_interface,
 						};
 						memcpy(peer_info.peer_addr, peer->mac, ESP_NOW_ETH_ALEN);
 						ESP_ERROR_CHECK(esp_now_add_peer(&peer_info));
@@ -135,17 +135,23 @@ void app_main(void)
 		vTaskDelete(NULL);
 	}
 
-	QueueHandle_t button_event_queue = button_init(GPIO_INPUT_PIN_SEL);
+	QueueHandle_t button_event_queue = button_init();
+	button_register(GPIO_BUTTON_UP, BUTTON_CONFIG_ACTIVE_LOW);
+	button_register(GPIO_BUTTON_DOWN, BUTTON_CONFIG_ACTIVE_LOW);
+	button_register(GPIO_BUTTON_LEFT, BUTTON_CONFIG_ACTIVE_LOW);
+	button_register(GPIO_BUTTON_RIGHT, BUTTON_CONFIG_ACTIVE_LOW);
+	button_register(GPIO_BUTTON_SHOOT, BUTTON_CONFIG_ACTIVE_LOW);
+	button_register(GPIO_BUTTON_TILT_LEFT, BUTTON_CONFIG_ACTIVE_LOW);
+	button_register(GPIO_BUTTON_TILT_RIGHT, BUTTON_CONFIG_ACTIVE_LOW);
 
 	xTaskCreate(rssi_task, "rssi_task", 4096, NULL, 4, NULL);
 
 	while (true)
 	{
-		// read the events and write to console
 		button_event_t button_event;
 		while (xQueueReceive(button_event_queue, &button_event, 0))
 		{
-			ESP_LOGI(TAG, "GPIO event: pin %d, event = %s", button_event.pin, BUTTON_STATE_STRING[button_event.event]);
+			ESP_LOGI(TAG, "GPIO event: pin %d, state = %s --> %s", button_event.pin, BUTTON_STATE_STRING[button_event.prev_state], BUTTON_STATE_STRING[button_event.new_state]);
 
 			espnow_send_data(&espnow_send_param, ESP_PEER_PACKET_TEXT, &button_event, sizeof(button_event));
 
@@ -153,25 +159,25 @@ void app_main(void)
 			switch (button_event.pin)
 			{
 			case GPIO_BUTTON_UP:
-				snprintf(temp, 64, "GPIO_BUTTON_UP, %s", BUTTON_STATE_STRING[button_event.event]);
+				snprintf(temp, 64, "GPIO_BUTTON_UP, %s", BUTTON_STATE_STRING[button_event.new_state]);
 				break;
 			case GPIO_BUTTON_DOWN:
-				snprintf(temp, 64, "GPIO_BUTTON_DOWN, %s", BUTTON_STATE_STRING[button_event.event]);
+				snprintf(temp, 64, "GPIO_BUTTON_DOWN, %s", BUTTON_STATE_STRING[button_event.new_state]);
 				break;
 			case GPIO_BUTTON_LEFT:
-				snprintf(temp, 64, "GPIO_BUTTON_LEFT, %s", BUTTON_STATE_STRING[button_event.event]);
+				snprintf(temp, 64, "GPIO_BUTTON_LEFT, %s", BUTTON_STATE_STRING[button_event.new_state]);
 				break;
 			case GPIO_BUTTON_RIGHT:
-				snprintf(temp, 64, "GPIO_BUTTON_RIGHT, %s", BUTTON_STATE_STRING[button_event.event]);
+				snprintf(temp, 64, "GPIO_BUTTON_RIGHT, %s", BUTTON_STATE_STRING[button_event.new_state]);
 				break;
 			case GPIO_BUTTON_SHOOT:
-				snprintf(temp, 64, "GPIO_BUTTON_SHOOT, %s", BUTTON_STATE_STRING[button_event.event]);
+				snprintf(temp, 64, "GPIO_BUTTON_SHOOT, %s", BUTTON_STATE_STRING[button_event.new_state]);
 				break;
 			case GPIO_BUTTON_TILT_LEFT:
-				snprintf(temp, 64, "GPIO_BUTTON_TILT_LEFT, %s", BUTTON_STATE_STRING[button_event.event]);
+				snprintf(temp, 64, "GPIO_BUTTON_TILT_LEFT, %s", BUTTON_STATE_STRING[button_event.new_state]);
 				break;
 			case GPIO_BUTTON_TILT_RIGHT:
-				snprintf(temp, 64, "GPIO_BUTTON_TILT_RIGHT, %s", BUTTON_STATE_STRING[button_event.event]);
+				snprintf(temp, 64, "GPIO_BUTTON_TILT_RIGHT, %s", BUTTON_STATE_STRING[button_event.new_state]);
 				break;
 			default:
 				break;
@@ -212,9 +218,9 @@ void app_main(void)
 					{
 						espnow_reply(&espnow_send_param, recv_data);
 						ESP_LOGI(TAG, "Receive %dth broadcast data from: " MACSTR ", len: %d",
-							 recv_data->seq_num,
-							 MAC2STR(recv_cb->mac_addr),
-							 recv_cb->data_len);
+								 recv_data->seq_num,
+								 MAC2STR(recv_cb->mac_addr),
+								 recv_cb->data_len);
 						print_mem(recv_data->payload, recv_data->len);
 					}
 				}
