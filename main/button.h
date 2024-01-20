@@ -14,7 +14,14 @@
 #include "esp_log.h"
 #include "esp_timer.h"
 
+#include "logging.h"
+
+#define BUTTON_PRESSED_HISTORY (0x003F)
+#define BUTTON_RELEASED_HISTORY (0xF000)
+#define BUTTON_ACTIVITY_MASK (BUTTON_PRESSED_HISTORY | BUTTON_RELEASED_HISTORY)
 #define BUTTON_LONG_PRESS_DURATION_US (1000 * 1000)
+#define BUTTON_QUEUE_DEPTH (16)
+#define BUTTON_QUEUE_MAX_WAIT_TIME (1000)
 
 typedef enum
 {
@@ -32,9 +39,9 @@ static const char __attribute__((unused)) * BUTTON_STATE_STRING[] = {
 
 typedef struct
 {
-        gpio_num_t pin;
-        button_state_t event;
-} button_event_t;
+        gpio_num_t pin : 8;
+        button_state_t event : 8;
+} __packed button_event_t;
 
 QueueHandle_t button_init(unsigned long long pin_select);
 void button_deinit(void);

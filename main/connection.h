@@ -13,7 +13,7 @@
 #include "esp_now.h"
 #include "mem_probe.h"
 
-#define ESP_LOG_ERROR(msg) ESP_LOGE(TAG, "ERROR: %s | on %s:%d", msg, __FILE__, __LINE__);
+#include "logging.h"
 
 typedef enum
 {

@@ -8,14 +8,14 @@ void esp_mac_handle_init(esp_mac_handle_t *handle)
         handle->size = 0;
         handle->entries = malloc(sizeof(esp_peer_t));
         if (handle->entries == NULL)
-                ESP_LOG_ERROR("malloc failed");
+                LOG_ERROR("malloc failed");
 }
 
 void esp_mac_handle_clear(esp_mac_handle_t *handle)
 {
         if ((handle == NULL) || (handle->entries == NULL))
         {
-                ESP_LOG_ERROR("NULL pointer");
+                LOG_ERROR("NULL pointer");
                 return;
         }
 
@@ -34,7 +34,7 @@ void esp_peer_set_mac(esp_peer_t *peer, const uint8_t *mac)
 {
         if (peer == NULL)
         {
-                ESP_LOG_ERROR("NULL pointer");
+                LOG_ERROR("NULL pointer");
                 return;
         }
         memcpy(peer->mac, mac, ESP_NOW_ETH_ALEN);
@@ -44,7 +44,7 @@ esp_peer_t *esp_mac_lookup(esp_mac_handle_t *handle, const uint8_t *mac)
 {
         if ((handle == NULL) || (handle->entries == NULL))
         {
-                ESP_LOG_ERROR("NULL pointer");
+                LOG_ERROR("NULL pointer");
                 return NULL;
         }
 
@@ -63,7 +63,7 @@ esp_peer_t *esp_mac_add_to_entry(esp_mac_handle_t *handle, const uint8_t *mac)
 {
         if ((handle == NULL) || (handle->entries == NULL))
         {
-                ESP_LOG_ERROR("NULL pointer");
+                LOG_ERROR("NULL pointer");
                 return NULL;
         }
 
@@ -79,7 +79,7 @@ esp_peer_t *esp_mac_add_to_entry(esp_mac_handle_t *handle, const uint8_t *mac)
 
         if (new_addr == NULL)
         {
-                ESP_LOG_ERROR("realloc falied");
+                LOG_ERROR("realloc falied");
                 return NULL;
         }
 
@@ -99,7 +99,7 @@ void esp_mac_show_entries(esp_mac_handle_t *handle)
 {
         if ((handle == NULL) || (handle->entries == NULL))
         {
-                ESP_LOG_ERROR("NULL pointer");
+                LOG_ERROR("NULL pointer");
                 return;
         }
 

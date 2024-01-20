@@ -1,17 +1,13 @@
 
 #include "button.h"
 
-#define BUTTON_PRESSED_HISTORY (0x003F)
-#define BUTTON_RELEASED_HISTORY (0xF000)
-#define BUTTON_ACTIVITY_MASK (BUTTON_PRESSED_HISTORY | BUTTON_RELEASED_HISTORY)
-
 static const char *TAG = "button";
 
 typedef struct
 {
-        gpio_num_t pin : 7;
-        button_state_t state : 2;
-        bool inverted : 1;
+        gpio_num_t pin;
+        button_state_t state;
+        bool inverted;
         uint16_t history;
         uint64_t down_time_us;
 } __packed button_data_t;
@@ -63,7 +59,11 @@ static void button_send_event(button_data_t *button)
             .pin = button->pin,
             .event = button->state,
         };
-        xQueueSend(button_queue, &event, portMAX_DELAY);
+
+        if (xQueueSend(button_queue, &event, BUTTON_QUEUE_MAX_WAIT_TIME) != pdTRUE)
+        {
+                LOG_WARNING("Send queue failed");
+        }
 }
 
 static void button_task(void *pvParameter)
@@ -148,7 +148,7 @@ QueueHandle_t button_init(uint64_t pin_select)
                 button_deinit();
                 return NULL;
         }
-        button_queue = xQueueCreate(4, sizeof(button_event_t)); // TODO: statically allow memory
+        button_queue = xQueueCreate(BUTTON_QUEUE_DEPTH, sizeof(button_event_t)); // TODO: statically allow memory
         if (button_queue == NULL)
         {
                 ESP_LOGE(TAG, "NO MEMORY");
