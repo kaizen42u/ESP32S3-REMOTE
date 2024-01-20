@@ -53,63 +53,55 @@ static bool button_up(button_data_t *button)
         return button_fell(button);
 }
 
-static void button_send_event(button_data_t *button)
+static void button_send_event(button_data_t *button, button_state_t prev_state)
 {
-        button_event_t event = {
+        button_event_t new_state = {
             .pin = button->pin,
-            .event = button->state,
+            .prev_state = prev_state,
+            .new_state = button->state,
         };
 
-        if (xQueueSend(button_queue, &event, BUTTON_QUEUE_MAX_WAIT_TIME) != pdTRUE)
-        {
+        if (xQueueSend(button_queue, &new_state, BUTTON_QUEUE_MAX_WAIT_TIME) != pdTRUE)
                 LOG_WARNING("Send queue failed");
-        }
 }
 
 static void button_task(void *pvParameter)
 {
-        while (true)
+        for (;;)
         {
                 for (int idx = 0; idx < num_buttons; idx++)
                 {
                         update_button(&button_data[idx]);
+                        button_state_t old_state = button_data[idx].state;
                         switch (button_data[idx].state)
                         {
                         case BUTTON_DOWN:
                                 if (button_up(&button_data[idx]))
-                                {
                                         button_data[idx].state = BUTTON_UP;
-                                        ESP_LOGV(TAG, "%d UP", button_data[idx].pin);
-                                        button_send_event(&button_data[idx]);
-                                }
                                 else if (esp_timer_get_time() - button_data[idx].down_time_us > BUTTON_LONG_PRESS_DURATION_US)
-                                {
                                         button_data[idx].state = BUTTON_LONG;
-                                        ESP_LOGV(TAG, "%d LONG", button_data[idx].pin);
-                                        button_send_event(&button_data[idx]);
-                                }
                                 break;
                         case BUTTON_UP:
                                 if (button_down(&button_data[idx]))
                                 {
                                         button_data[idx].down_time_us = esp_timer_get_time();
                                         button_data[idx].state = BUTTON_DOWN;
-                                        ESP_LOGV(TAG, "%d DOWN", button_data[idx].pin);
-                                        button_send_event(&button_data[idx]);
                                 }
                                 break;
                         case BUTTON_LONG:
                                 if (button_up(&button_data[idx]))
-                                {
                                         button_data[idx].state = BUTTON_UP;
-                                        ESP_LOGV(TAG, "%d UP", button_data[idx].pin);
-                                        button_send_event(&button_data[idx]);
-                                }
                                 break;
                         default:
-                                ESP_LOGE(TAG, "%d ERROR", button_data[idx].pin);
+                                LOG_ERROR("unhandled switch statement");
                                 vTaskDelete(NULL);
                                 break;
+                        }
+
+                        if (old_state != button_data[idx].state)
+                        {
+                                ESP_LOGV(TAG, "gpio: %d, %s --> %s", button_data[idx].pin, BUTTON_STATE_STRING[old_state], BUTTON_STATE_STRING[button_data[idx].state]);
+                                button_send_event(&button_data[idx], old_state);
                         }
                 }
                 vTaskDelay(pdMS_TO_TICKS(10));
@@ -120,7 +112,7 @@ QueueHandle_t button_init(uint64_t pin_select)
 {
         if (num_buttons != -1)
         {
-                ESP_LOGW(TAG, "Already initialized");
+                LOG_WARNING("already initialized");
                 return NULL;
         }
 
@@ -144,14 +136,14 @@ QueueHandle_t button_init(uint64_t pin_select)
         button_data = calloc(num_buttons, sizeof(button_data_t)); // TODO: statically allow memory
         if (button_data == NULL)
         {
-                ESP_LOGE(TAG, "NO MEMORY");
+                LOG_ERROR("calloc falied");
                 button_deinit();
                 return NULL;
         }
         button_queue = xQueueCreate(BUTTON_QUEUE_DEPTH, sizeof(button_event_t)); // TODO: statically allow memory
         if (button_queue == NULL)
         {
-                ESP_LOGE(TAG, "NO MEMORY");
+                LOG_ERROR("Create queue falied");
                 button_deinit();
                 return NULL;
         }
@@ -161,7 +153,7 @@ QueueHandle_t button_init(uint64_t pin_select)
         for (int pin = 0; pin < GPIO_NUM_MAX; pin++)
                 if ((1ULL << pin) & pin_select)
                 {
-                        ESP_LOGI(TAG, "Registering button input: %d", pin);
+                        ESP_LOGI(TAG, "Registering button on gpio: %d", pin);
                         button_data[idx].pin = pin;
                         button_data[idx].down_time_us = 0;
                         button_data[idx].inverted = true;

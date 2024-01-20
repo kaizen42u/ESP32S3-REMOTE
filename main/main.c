@@ -141,11 +141,10 @@ void app_main(void)
 
 	while (true)
 	{
-		// read the events and write to console
 		button_event_t button_event;
 		while (xQueueReceive(button_event_queue, &button_event, 0))
 		{
-			ESP_LOGI(TAG, "GPIO event: pin %d, event = %s", button_event.pin, BUTTON_STATE_STRING[button_event.event]);
+			ESP_LOGI(TAG, "GPIO event: pin %d, state = %s --> %s", button_event.pin, BUTTON_STATE_STRING[button_event.prev_state], BUTTON_STATE_STRING[button_event.new_state]);
 
 			espnow_send_data(&espnow_send_param, ESP_PEER_PACKET_TEXT, &button_event, sizeof(button_event));
 
@@ -153,25 +152,25 @@ void app_main(void)
 			switch (button_event.pin)
 			{
 			case GPIO_BUTTON_UP:
-				snprintf(temp, 64, "GPIO_BUTTON_UP, %s", BUTTON_STATE_STRING[button_event.event]);
+				snprintf(temp, 64, "GPIO_BUTTON_UP, %s", BUTTON_STATE_STRING[button_event.new_state]);
 				break;
 			case GPIO_BUTTON_DOWN:
-				snprintf(temp, 64, "GPIO_BUTTON_DOWN, %s", BUTTON_STATE_STRING[button_event.event]);
+				snprintf(temp, 64, "GPIO_BUTTON_DOWN, %s", BUTTON_STATE_STRING[button_event.new_state]);
 				break;
 			case GPIO_BUTTON_LEFT:
-				snprintf(temp, 64, "GPIO_BUTTON_LEFT, %s", BUTTON_STATE_STRING[button_event.event]);
+				snprintf(temp, 64, "GPIO_BUTTON_LEFT, %s", BUTTON_STATE_STRING[button_event.new_state]);
 				break;
 			case GPIO_BUTTON_RIGHT:
-				snprintf(temp, 64, "GPIO_BUTTON_RIGHT, %s", BUTTON_STATE_STRING[button_event.event]);
+				snprintf(temp, 64, "GPIO_BUTTON_RIGHT, %s", BUTTON_STATE_STRING[button_event.new_state]);
 				break;
 			case GPIO_BUTTON_SHOOT:
-				snprintf(temp, 64, "GPIO_BUTTON_SHOOT, %s", BUTTON_STATE_STRING[button_event.event]);
+				snprintf(temp, 64, "GPIO_BUTTON_SHOOT, %s", BUTTON_STATE_STRING[button_event.new_state]);
 				break;
 			case GPIO_BUTTON_TILT_LEFT:
-				snprintf(temp, 64, "GPIO_BUTTON_TILT_LEFT, %s", BUTTON_STATE_STRING[button_event.event]);
+				snprintf(temp, 64, "GPIO_BUTTON_TILT_LEFT, %s", BUTTON_STATE_STRING[button_event.new_state]);
 				break;
 			case GPIO_BUTTON_TILT_RIGHT:
-				snprintf(temp, 64, "GPIO_BUTTON_TILT_RIGHT, %s", BUTTON_STATE_STRING[button_event.event]);
+				snprintf(temp, 64, "GPIO_BUTTON_TILT_RIGHT, %s", BUTTON_STATE_STRING[button_event.new_state]);
 				break;
 			default:
 				break;
