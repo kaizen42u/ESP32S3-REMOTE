@@ -12,6 +12,8 @@
 #include "rssi.h"
 #include "ws2812.h"
 
+#include "logging.h"
+
 static const char __attribute__((unused)) *TAG = "app_main";
 
 static esp_peer_t *the_one_connected_peer;
@@ -55,13 +57,14 @@ void rssi_task()
 			espnow_send_text(&espnow_send_param, "ping");
 		}
 		rssi_event_t rssi_event;
-		if (xQueueReceive(rssi_event_queue, &rssi_event, 0))
+		while (xQueueReceive(rssi_event_queue, &rssi_event, 0))
 		{
 			const int rssi_min = -20;
 			// print_rssi_event(&rssi_event);
 			if (rssi_event.rssi > rssi_min)
 			{
 				esp_peer_t *peer = esp_connection_mac_add_to_entry(&esp_connection_handle, rssi_event.recv_mac);
+				peer->rssi = rssi_event.rssi;
 				if (peer->status == ESP_PEER_STATUS_CONNECTED)
 					peer->lastseen_unicast_us = esp_timer_get_time();
 
@@ -74,9 +77,9 @@ void rssi_task()
 					if (!esp_now_is_peer_exist(peer->mac))
 					{
 						esp_now_peer_info_t peer_info = {
-							.channel = espnow_config.channel,
-							.encrypt = false,
-							.ifidx = espnow_config.esp_interface,
+						    .channel = espnow_config.channel,
+						    .encrypt = false,
+						    .ifidx = espnow_config.esp_interface,
 						};
 						memcpy(peer_info.peer_addr, peer->mac, ESP_NOW_ETH_ALEN);
 						ESP_ERROR_CHECK(esp_now_add_peer(&peer_info));
@@ -128,10 +131,12 @@ void app_main(void)
 	esp_connection_handle_init(&esp_connection_handle);
 	QueueHandle_t espnow_event_queue = espnow_init(&espnow_config, &esp_connection_handle);
 
-	if (espnow_send_text(&espnow_send_param, "device init") != ESP_OK)
+	ret = espnow_send_text(&espnow_send_param, "device init");
+	if (ret != ESP_OK)
 	{
-		ESP_LOGE(TAG, "Send error, quitting");
+		LOG_ERROR("ESP_NOW send error, quitting");
 		espnow_deinit(&espnow_send_param);
+		ESP_ERROR_CHECK(ret);
 		vTaskDelete(NULL);
 	}
 
@@ -151,9 +156,11 @@ void app_main(void)
 		button_event_t button_event;
 		while (xQueueReceive(button_event_queue, &button_event, 0))
 		{
-			ESP_LOGI(TAG, "GPIO event: pin %d, state = %s --> %s", button_event.pin, BUTTON_STATE_STRING[button_event.prev_state], BUTTON_STATE_STRING[button_event.new_state]);
+			LOG_INFO("GPIO event: pin %d, state = %s --> %s", button_event.pin, BUTTON_STATE_STRING[button_event.prev_state], BUTTON_STATE_STRING[button_event.new_state]);
 
-			espnow_send_data(&espnow_send_param, ESP_PEER_PACKET_TEXT, &button_event, sizeof(button_event));
+			esp_err_t ret;
+			ret = espnow_send_data(&espnow_send_param, ESP_PEER_PACKET_TEXT, &button_event, sizeof(button_event));
+			ESP_ERROR_CHECK_WITHOUT_ABORT(ret);
 
 			char temp[64];
 			switch (button_event.pin)
@@ -182,7 +189,7 @@ void app_main(void)
 			default:
 				break;
 			}
-			espnow_send_text(&espnow_send_param, temp);
+			// espnow_send_text(&espnow_send_param, temp);
 		}
 
 		espnow_event_t espnow_evt;
@@ -216,11 +223,11 @@ void app_main(void)
 					// ESP_LOGI(TAG, "Packet id:[%4d] acknowleded by receiver", recv_data->seq_num);
 					else
 					{
-						espnow_reply(&espnow_send_param, recv_data);
-						ESP_LOGI(TAG, "Receive %dth broadcast data from: " MACSTR ", len: %d",
-								 recv_data->seq_num,
-								 MAC2STR(recv_cb->mac_addr),
-								 recv_cb->data_len);
+						// espnow_reply(&espnow_send_param, recv_data);
+						ESP_LOGV(TAG, "Receive %dth broadcast data from: " MACSTR ", len: %d",
+							 recv_data->seq_num,
+							 MAC2STR(recv_cb->mac_addr),
+							 recv_cb->data_len);
 						print_mem(recv_data->payload, recv_data->len);
 					}
 				}
@@ -232,7 +239,7 @@ void app_main(void)
 						the_one_connected_peer = peer;
 						esp_peer_set_status(peer, ESP_PEER_STATUS_CONNECTED);
 					}
-					ESP_LOGI(TAG, "Receive %dth unicast data from: " MACSTR ", len: %d", recv_data->seq_num, MAC2STR(recv_cb->mac_addr), recv_cb->data_len);
+					ESP_LOGV(TAG, "Receive %dth unicast data from: " MACSTR ", len: %d", recv_data->seq_num, MAC2STR(recv_cb->mac_addr), recv_cb->data_len);
 					print_mem(recv_data->payload, recv_data->len);
 				}
 				else

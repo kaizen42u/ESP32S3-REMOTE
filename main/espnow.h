@@ -30,18 +30,11 @@
 #include "esp_timer.h"
 
 #include "mem_probe.h"
-
-#define ESP_MAP_CHECK_NULL_HANDLE(handle) if(handle == NULL) {ESP_LOGE(TAG, "runtime nullptr error on %s:%d", __FILE__, __LINE__); return;}
-#define ESP_MAP_CHECK_NULL_HANDLE_RV(handle) if(handle == NULL) {ESP_LOGE(TAG, "runtime nullptr error on %s:%d", __FILE__, __LINE__); return NULL;}
-#define ESP_MAP_CHECK_NULL_HANDLE_MSG(handle, msg) if(handle == NULL) {ESP_LOGE(TAG, "runtime nullptr error on %s:%d | %s", __FILE__, __LINE__, msg); return;}
-#define ESP_MAP_CHECK_NULL_HANDLE_MSG_RV(handle, msg) if(handle == NULL) {ESP_LOGE(TAG, "runtime nullptr error on %s:%d | %s", __FILE__, __LINE__, msg); return NULL;}
+#include "logging.h"
 
 #define ONE_SECOND_IN_US (1 * 1e6)
 
-#define ESPNOW_MAXDELAY 512
-#define ESPNOW_QUEUE_SIZE 6
-
-#define IS_BROADCAST_ADDR(addr) (memcmp(addr, broadcast_mac, ESP_NOW_ETH_ALEN) == 0)
+#define ESPNOW_QUEUE_SIZE (64)
 
 typedef struct
 {
@@ -64,28 +57,28 @@ typedef enum
 typedef struct
 {
         uint8_t mac_addr[ESP_NOW_ETH_ALEN];
-        esp_now_send_status_t status;
-} espnow_event_send_cb_t;
+        esp_now_send_status_t status : 8;
+} __packed espnow_event_send_cb_t;
 
 typedef struct
 {
         uint8_t mac_addr[ESP_NOW_ETH_ALEN];
         size_t data_len;
         uint8_t *data;
-} espnow_event_recv_cb_t;
+} __packed espnow_event_recv_cb_t;
 
 typedef union
 {
         espnow_event_send_cb_t send_cb;
         espnow_event_recv_cb_t recv_cb;
-} espnow_event_info_t;
+} __packed espnow_event_info_t;
 
 /* When ESPNOW sending or receiving callback function is called, post event to ESPNOW task. */
 typedef struct
 {
-        espnow_event_id_t id;
+        espnow_event_id_t id : 8;
         espnow_event_info_t info;
-} espnow_event_t;
+} __packed espnow_event_t;
 
 typedef enum
 {
@@ -100,6 +93,18 @@ typedef enum
         ESPNOW_PARAM_TYPE_NACK,
         ESPNOW_PARAM_TYPE_MAX,
 } espnow_param_type_t;
+
+static const char __attribute__((unused)) * ESPNOW_PARAM_TYPE_STRING[] = {
+    "ESPNOW_PARAM_TYPE_TEXT",
+    "ESPNOW_PARAM_TYPE_BATTERY_VOLTAGE",
+    "ESPNOW_PARAM_TYPE_SYNC_RGB",
+    "ESPNOW_PARAM_TYPE_CAR_MOVEMENT",
+    "ESPNOW_PARAM_TYPE_CATAPULT_MOVEMENT",
+    "ESPNOW_PARAM_TYPE_KEEPER_MOVEMENT",
+    "ESPNOW_PARAM_TYPE_PING",
+    "ESPNOW_PARAM_TYPE_ACK",
+    "ESPNOW_PARAM_TYPE_NACK",
+    "ESPNOW_PARAM_TYPE_MAX"};
 
 typedef enum
 {
@@ -158,6 +163,18 @@ typedef enum
         ESP_PEER_STATUS_MAX,
 } esp_peer_status_t;
 
+static const char __attribute__((unused)) * ESP_PEER_STATUS_STRING[] = {
+    "ESP_PEER_STATUS_UNKNOWN",
+    "ESP_PEER_STATUS_LOST",
+    "ESP_PEER_STATUS_PROTOCOL_ERROR",
+    "ESP_PEER_STATUS_NOREPLY",
+    "ESP_PEER_STATUS_REJECTED",
+    "ESP_PEER_STATUS_IN_RANGE",
+    "ESP_PEER_STATUS_AVAILABLE",
+    "ESP_PEER_STATUS_CONNECTING",
+    "ESP_PEER_STATUS_CONNECTED",
+    "ESP_PEER_STATUS_MAX"};
+
 typedef enum
 {
         ESP_PEER_PACKET_TEXT,
@@ -178,11 +195,13 @@ typedef struct
         uint8_t mac[ESP_NOW_ETH_ALEN];
         int64_t lastseen_broadcast_us;
         int64_t lastseen_unicast_us;
+        int64_t lastsent_unicast_us;
         int64_t connect_time_us;
         size_t conn_retry;
         size_t seq_rx;
         size_t seq_tx;
         esp_peer_status_t status;
+        int rssi;
 } esp_peer_t;
 
 typedef struct
