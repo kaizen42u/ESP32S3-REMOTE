@@ -1,2 +1,2 @@
-idf_component_register(SRCS "led_strip_encoder.c" "rssi.c" "ws2812.c" "motor.c" "mem_probe.c" "espnow.c" "main.c" "button.c"
+idf_component_register(SRCS "mathop.c" "led_strip_encoder.c" "rssi.c" "ws2812.c" "mem_probe.c" "espnow.c" "main.c" "button.c"
                     INCLUDE_DIRS ".")
