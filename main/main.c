@@ -12,6 +12,8 @@
 #include "rssi.h"
 #include "ws2812.h"
 
+#include "logging.h"
+
 static const char __attribute__((unused)) *TAG = "app_main";
 
 static esp_peer_t *the_one_connected_peer;
@@ -129,10 +131,12 @@ void app_main(void)
 	esp_connection_handle_init(&esp_connection_handle);
 	QueueHandle_t espnow_event_queue = espnow_init(&espnow_config, &esp_connection_handle);
 
-	if (espnow_send_text(&espnow_send_param, "device init") != ESP_OK)
+	ret = espnow_send_text(&espnow_send_param, "device init");
+	if (ret != ESP_OK)
 	{
-		ESP_LOGE(TAG, "Send error, quitting");
+		LOG_ERROR("ESP_NOW send error, quitting");
 		espnow_deinit(&espnow_send_param);
+		ESP_ERROR_CHECK(ret);
 		vTaskDelete(NULL);
 	}
 
@@ -152,7 +156,7 @@ void app_main(void)
 		button_event_t button_event;
 		while (xQueueReceive(button_event_queue, &button_event, 0))
 		{
-			ESP_LOGI(TAG, "GPIO event: pin %d, state = %s --> %s", button_event.pin, BUTTON_STATE_STRING[button_event.prev_state], BUTTON_STATE_STRING[button_event.new_state]);
+			LOG_INFO("GPIO event: pin %d, state = %s --> %s", button_event.pin, BUTTON_STATE_STRING[button_event.prev_state], BUTTON_STATE_STRING[button_event.new_state]);
 
 			esp_err_t ret;
 			ret = espnow_send_data(&espnow_send_param, ESP_PEER_PACKET_TEXT, &button_event, sizeof(button_event));
