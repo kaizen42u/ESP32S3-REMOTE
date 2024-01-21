@@ -31,6 +31,7 @@
 
 #include "mem_probe.h"
 #include "logging.h"
+#include "rssi.h"
 
 #define ONE_SECOND_IN_US (1 * 1e6)
 
@@ -155,11 +156,11 @@ typedef enum
         ESP_PEER_STATUS_LOST,
         ESP_PEER_STATUS_PROTOCOL_ERROR,
         ESP_PEER_STATUS_NOREPLY,
-        ESP_PEER_STATUS_REJECTED,
         ESP_PEER_STATUS_IN_RANGE,
         ESP_PEER_STATUS_AVAILABLE,
         ESP_PEER_STATUS_CONNECTING,
         ESP_PEER_STATUS_CONNECTED,
+        ESP_PEER_STATUS_REJECTED,
         ESP_PEER_STATUS_MAX,
 } esp_peer_status_t;
 
@@ -168,11 +169,11 @@ static const char __attribute__((unused)) * ESP_PEER_STATUS_STRING[] = {
     "ESP_PEER_STATUS_LOST",
     "ESP_PEER_STATUS_PROTOCOL_ERROR",
     "ESP_PEER_STATUS_NOREPLY",
-    "ESP_PEER_STATUS_REJECTED",
     "ESP_PEER_STATUS_IN_RANGE",
     "ESP_PEER_STATUS_AVAILABLE",
     "ESP_PEER_STATUS_CONNECTING",
     "ESP_PEER_STATUS_CONNECTED",
+    "ESP_PEER_STATUS_REJECTED",
     "ESP_PEER_STATUS_MAX"};
 
 typedef enum
@@ -207,11 +208,12 @@ typedef struct
 typedef struct
 {
         esp_peer_t *entries;
-        size_t size;
-        size_t remote_connected;
+        int8_t size;
+        int8_t limit;
+        int8_t remote_connected;
 } esp_connection_handle_t;
 
-espnow_config_t *espnow_wifi_default_config(espnow_config_t *espnow_config);
+espnow_config_t *espnow_wifi_default_config();
 espnow_send_param_t *espnow_default_send_param(espnow_send_param_t *send_param);
 
 void espnow_wifi_init(espnow_config_t *espnow_config);
@@ -231,6 +233,7 @@ esp_err_t espnow_reply(espnow_send_param_t *send_param, espnow_data_t *recv_data
 void esp_connection_handle_init(esp_connection_handle_t *handle);
 void esp_connection_handle_clear(esp_connection_handle_t *handle);
 void esp_connection_handle_update(esp_connection_handle_t *handle);
+void esp_connection_update_rssi(esp_connection_handle_t *handle, const rssi_event_t *rssi_event);
 
 size_t esp_connection_count_connected(esp_connection_handle_t *handle);
 esp_peer_t *esp_connection_mac_lookup(esp_connection_handle_t *handle, const uint8_t *mac);
@@ -238,4 +241,5 @@ esp_peer_t *esp_connection_mac_add_to_entry(esp_connection_handle_t *handle, con
 
 void esp_connection_show_entries(esp_connection_handle_t *handle);
 
+void esp_connection_set_peer_limit(esp_connection_handle_t *handle, int8_t new_limit);
 void esp_peer_set_status(esp_peer_t *peer, esp_peer_status_t new_status);

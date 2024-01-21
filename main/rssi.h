@@ -11,6 +11,9 @@
 #include "esp_mac.h"
 #include "esp_log.h"
 #include "esp_timer.h"
+#include "esp_now.h"
+
+#include "logging.h"
 
 #define RSSI_QUEUE_SIZE (64)
 
