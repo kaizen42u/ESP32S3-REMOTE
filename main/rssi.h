@@ -12,7 +12,7 @@
 #include "esp_log.h"
 #include "esp_timer.h"
 
-#define RSSI_QUEUE_SIZE 16
+#define RSSI_QUEUE_SIZE (64)
 
 // Estructuras para calcular los paquetes, el RSSI, etc
 typedef struct
@@ -37,7 +37,7 @@ typedef struct
         uint8_t recv_mac[6];
         int rssi;
         int64_t time_us;
-} rssi_event_t;
+} __packed rssi_event_t;
 
 QueueHandle_t rssi_init(void);
 void print_rssi_event(rssi_event_t *event);

@@ -41,7 +41,11 @@
     "string_view": "c",
     "semphr.h": "c",
     "mcpwm.h": "c",
-    "regex": "c"
+    "regex": "c",
+    "chrono": "c",
+    "format": "c",
+    "*.tcc": "c",
+    "xiosbase": "c"
   },
   "idf.port": "/dev/ttyACM0",
   "cmake.configureOnOpen": false

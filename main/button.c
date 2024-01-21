@@ -106,14 +106,14 @@ static void button_task(void *pvParameter)
                                         button_data[idx].state = BUTTON_UP;
                                 break;
                         default:
-                                LOG_ERROR("unhandled switch statement, aborting");
+                                LOG_ERROR("unhandled switch statement [%d], aborting", button_data[idx].state);
                                 vTaskDelete(NULL);
                                 break;
                         }
 
                         if (old_state != button_data[idx].state)
                         {
-                                ESP_LOGV(TAG, "gpio: %d, %s --> %s", button_data[idx].pin, BUTTON_STATE_STRING[old_state], BUTTON_STATE_STRING[button_data[idx].state]);
+                                LOG_VERBOSE("gpio: %d, %s --> %s", button_data[idx].pin, BUTTON_STATE_STRING[old_state], BUTTON_STATE_STRING[button_data[idx].state]);
                                 button_send_event(&button_data[idx], old_state);
                         }
                 }
@@ -125,7 +125,7 @@ QueueHandle_t button_init(void)
 {
         if ((button_queue != NULL) || (button_task_handle != NULL))
         {
-                LOG_WARNING("already initialized");
+                LOG_WARNING("Already initialized, queue=0x%X, task=0x%X", (uintptr_t)button_queue, (uintptr_t)button_task_handle);
                 return NULL;
         }
 
@@ -148,12 +148,12 @@ void button_register(const gpio_num_t pin, const button_config_active_t inverted
 {
         if (pinmask & (1ULL << pin))
         {
-                LOG_WARNING("This gpio pin has been already initialized as an input");
+                LOG_WARNING("The gpio [%d] has been already initialized as an input", pin);
                 return;
         }
 
         uint8_t num_buttons = count_num_buttons(pinmask);
-        ESP_LOGI(TAG, "Registering button on gpio: %d, id: %d", pin, num_buttons);
+        LOG_INFO("Registering button on gpio: %d, id: %d", pin, num_buttons);
 
         // Configure the pins
         gpio_config_t io_conf = {
