@@ -47,6 +47,6 @@
     "*.tcc": "c",
     "xiosbase": "c"
   },
-  "idf.port": "/dev/ttyACM0",
+  "idf.port": "/dev/ttyACM1",
   "cmake.configureOnOpen": false
 }
