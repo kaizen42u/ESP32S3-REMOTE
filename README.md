@@ -27,13 +27,13 @@ This project is about creating a remote that can control a [robot car](https://g
 - Connect the ESP32S3 module to your computer using USB cables
 - Open the sketch in Visual Studio Code
 - Select the correct board (ESP32S3 Dev Module) and port
-- Upload the sketche to the ESP32S3 module
+- Upload the sketch to the ESP32S3 module
 
 ## Usage
 
 - Turn on the robot car and the remote
 - Hold the remote close to the robot car and start pressing buttons
-- Wait for the ESP-NOW connection to be established
+- Wait for the ESP-NOW connection to be established (Pink LED lights up)
 - Use the joystick and the buttons on the remote to control the robot car
 - Enjoy!
 
@@ -41,6 +41,6 @@ This project is about creating a remote that can control a [robot car](https://g
 
 This project is licensed under the MIT License - see the LICENSE file for details
 
-## Remote Github Page
+## Car Github Page
 
 For more information about the robot car implementation, please visit the [robot car github page](https://github.com/kaizen42u/ESP32S3-CAR)
