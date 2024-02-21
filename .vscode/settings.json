@@ -5,7 +5,7 @@
   "idf.openOcdConfigs": [
     "board/esp32s3-builtin.cfg"
   ],
-  "idf.flashType": "UART",
+  "idf.flashType": "JTAG",
   "files.associations": {
     "gpio.h": "c",
     "inttypes.h": "c",
