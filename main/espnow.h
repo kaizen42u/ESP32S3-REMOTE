@@ -85,6 +85,7 @@ typedef enum
 {
         ESPNOW_PARAM_TYPE_TEXT,
         ESPNOW_PARAM_TYPE_BATTERY_VOLTAGE,
+        ESPNOW_PARAM_TYPE_MOTOR_STAT,
         ESPNOW_PARAM_TYPE_SYNC_RGB,
         ESPNOW_PARAM_TYPE_CAR_MOVEMENT,
         ESPNOW_PARAM_TYPE_CATAPULT_MOVEMENT,
@@ -98,6 +99,7 @@ typedef enum
 static const char __attribute__((unused)) * ESPNOW_PARAM_TYPE_STRING[] = {
     "ESPNOW_PARAM_TYPE_TEXT",
     "ESPNOW_PARAM_TYPE_BATTERY_VOLTAGE",
+    "ESPNOW_PARAM_TYPE_MOTOR_STAT",
     "ESPNOW_PARAM_TYPE_SYNC_RGB",
     "ESPNOW_PARAM_TYPE_CAR_MOVEMENT",
     "ESPNOW_PARAM_TYPE_CATAPULT_MOVEMENT",
@@ -125,17 +127,17 @@ typedef struct
         uint16_t seq_num;             // Sequence number of ESPNOW data.
         uint16_t crc;                 // CRC16 value of ESPNOW data.
         espnow_data_type_t broadcast; // 0: broadcast, 1: unicast
-        espnow_param_type_t type;
-        uint8_t salt;       // random bits
-        uint8_t len;        // Length of payload, unit: byte.
-        uint8_t payload[0]; // Real payload of ESPNOW data.
+        espnow_param_type_t type;     //
+        uint8_t salt;                 // random bits
+        uint8_t len;                  // Length of payload, unit: byte.
+        uint8_t payload[0];           // Real payload of ESPNOW data.
 } espnow_data_t;
 
 /* Parameters of sending ESPNOW data. */
 typedef struct
 {
-        espnow_data_type_t broadcast; // Broadcast or unicast ESPNOW data.
-        espnow_param_type_t type;
+        espnow_data_type_t broadcast;       // Broadcast or unicast ESPNOW data.
+        espnow_param_type_t type;           //
         uint16_t seq_num;                   // Sequence number of ESPNOW data.
         int len;                            // Length of ESPNOW data to be sent, unit: byte.
         uint8_t *buffer;                    // Buffer pointing to ESPNOW data.
@@ -206,7 +208,7 @@ typedef struct
         int8_t remote_connected;
 } esp_connection_handle_t;
 
-espnow_config_t *espnow_wifi_default_config();
+espnow_config_t *espnow_wifi_default_config(espnow_config_t *config);
 espnow_send_param_t *espnow_default_send_param(espnow_send_param_t *send_param);
 
 void espnow_wifi_init(espnow_config_t *espnow_config);

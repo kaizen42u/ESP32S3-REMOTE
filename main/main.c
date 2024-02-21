@@ -14,11 +14,23 @@
 
 #include "logging.h"
 #include "mathop.h"
+#include "packets.h"
 
 static const char __attribute__((unused)) *TAG = "app_main";
 
 static espnow_send_param_t espnow_send_param;
 static esp_connection_handle_t esp_connection_handle;
+
+void motor_controller_print_stat(motor_group_stat_pkt_t *motor_stat)
+{
+	LOG_INFO("Lcnt:%6d, Rcnt:%6d | Lspd:%6.3f, Rspd:%6.3f | Lacc:%6.3f, Racc:%6.3f | Lpwm:%6.3f, Rpwm:%6.3f | Δd: %6.3f | Δs: %6.3f",
+			 motor_stat->left_motor.counter, motor_stat->right_motor.counter,
+			 motor_stat->left_motor.velocity, motor_stat->right_motor.velocity,
+			 motor_stat->left_motor.acceleration, motor_stat->right_motor.acceleration,
+			 motor_stat->left_motor.duty_cycle, motor_stat->right_motor.duty_cycle,
+			 motor_stat->delta_distance,
+			 motor_stat->delta_velocity);
+}
 
 void rssi_task()
 {
@@ -185,6 +197,19 @@ void app_main(void)
 				esp_peer_t *peer = esp_connection_mac_add_to_entry(&esp_connection_handle, recv_cb->mac_addr);
 				espnow_get_send_param(&espnow_send_param, peer);
 				esp_peer_process_received(peer, recv_data);
+
+				if (recv_data->type == ESPNOW_PARAM_TYPE_MOTOR_STAT)
+				{
+					if (recv_data->len == sizeof(motor_group_stat_pkt_t))
+					{
+						static motor_group_stat_pkt_t motor_stat;
+						memccpy(&motor_stat, recv_data->payload, recv_data->len, recv_data->len);
+						motor_controller_print_stat(&motor_stat);
+					}
+
+					// print_mem(recv_data->payload, recv_data->len);
+				}
+
 				free(recv_cb->data);
 				break;
 			default:

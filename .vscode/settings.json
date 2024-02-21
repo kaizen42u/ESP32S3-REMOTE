@@ -48,5 +48,20 @@
     "xiosbase": "c"
   },
   "idf.port": "/dev/ttyACM0",
-  "cmake.configureOnOpen": false
+  "cmake.configureOnOpen": false,
+  "cSpell.words": [
+    "ESPNOW",
+    "GPIO",
+    "Lacc",
+    "lastseen",
+    "lastsent",
+    "Lcnt",
+    "Lpwm",
+    "Lspd",
+    "MACSTR",
+    "Racc",
+    "Rpwm",
+    "Rspd",
+    "rssi"
+  ]
 }
