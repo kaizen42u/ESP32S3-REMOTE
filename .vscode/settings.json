@@ -50,7 +50,11 @@
   "idf.port": "/dev/ttyACM0",
   "cmake.configureOnOpen": false,
   "cSpell.words": [
+    "columnspan",
+    "Consolas",
+    "errdis",
     "ESPNOW",
+    "figsize",
     "GPIO",
     "Lacc",
     "lastseen",
@@ -62,6 +66,11 @@
     "Racc",
     "Rpwm",
     "Rspd",
-    "rssi"
-  ]
+    "rssi",
+    "timespan",
+    "tkagg",
+    "ylim"
+  ],
+  "python.analysis.typeCheckingMode": "basic",
+  "python.analysis.autoImportCompletions": true
 }
