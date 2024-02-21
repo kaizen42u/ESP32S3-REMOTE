@@ -5,7 +5,7 @@
   "idf.openOcdConfigs": [
     "board/esp32s3-builtin.cfg"
   ],
-  "idf.flashType": "UART",
+  "idf.flashType": "JTAG",
   "files.associations": {
     "gpio.h": "c",
     "inttypes.h": "c",
@@ -47,6 +47,6 @@
     "*.tcc": "c",
     "xiosbase": "c"
   },
-  "idf.port": "/dev/ttyACM1",
+  "idf.port": "/dev/ttyACM0",
   "cmake.configureOnOpen": false
 }

@@ -5,7 +5,6 @@ static const char *TAG = "espnow";
 
 QueueHandle_t espnow_queue;
 static const uint8_t broadcast_mac[ESP_NOW_ETH_ALEN] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-static uint16_t espnow_seq[2] = {0, 0}; // [0] for Tx, [1] for Rx
 static esp_connection_handle_t *esp_connection_handle;
 static espnow_config_t *espnow_config;
 
@@ -257,18 +256,15 @@ esp_err_t espnow_send_data(espnow_send_param_t *send_param, espnow_param_type_t 
         }
 
         esp_peer_t *peer = esp_connection_mac_lookup(esp_connection_handle, send_param->dest_mac);
-        if (peer == NULL)
-        {
-                send_param->seq_num = espnow_seq[ESPNOW_PARAM_SEQ_TX]++;
-        }
-        else
-        {
-                send_param->seq_num = peer->seq_tx;
-                peer->seq_tx++;
+        if (peer == NULL) return ESP_FAIL;
+        send_param->seq_num = peer->seq_tx;
+        send_param->type = type;
+        peer->seq_tx++;
+        if (peer->registered) {
                 peer->lastsent_unicast_us = esp_timer_get_time();
         }
+
         esp_err_t ret;
-        send_param->type = type;
         espnow_payload_create(send_param, data, len);
         espnow_data_t *packet = (espnow_data_t *)send_param->buffer;
         if (packet == NULL)
@@ -327,6 +323,7 @@ QueueHandle_t espnow_init(espnow_config_t *espnow_config, esp_connection_handle_
         };
         memcpy(peer.peer_addr, broadcast_mac, ESP_NOW_ETH_ALEN);
         ESP_ERROR_CHECK(esp_now_add_peer(&peer));
+        esp_connection_mac_add_to_entry(esp_connection_handle, peer.peer_addr);
 
         return espnow_queue;
 }
