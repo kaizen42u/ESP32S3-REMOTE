@@ -9,8 +9,6 @@ from pltGraph import pltGraph
 from tkAnsiFormatter import tkAnsiFormatter
 
 import matplotlib
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 matplotlib.use("Agg")
 
@@ -29,6 +27,7 @@ class SerialApp:
 
         # Create a dropdown menu for available ports
         self.port_var = tk.StringVar()
+
         if ports:
             self.port_var.set(ports[0])  # Preselect the first available port
         self.port_dropdown = tk.OptionMenu(root, self.port_var, "", *ports)
@@ -65,6 +64,7 @@ class SerialApp:
 
         self.delta_figure = pltGraph(root=root, title="Delta Error")
         self.delta_figure.grid(row=2, column=2)
+        # self.delta_figure.set_ylim(-10, 10)
 
         # Create a thread to draw figures
         threading.Thread(target=self.draw_graphs).start()
@@ -140,7 +140,6 @@ class SerialApp:
                 if self.auto_scroll.get():
                     self.terminal.see(tk.END)
             sleep(0.1)
-        
 
 
 if __name__ == "__main__":
