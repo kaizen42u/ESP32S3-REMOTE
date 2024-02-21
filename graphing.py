@@ -18,7 +18,7 @@ matplotlib.use("Agg")
 class SerialApp:
     def __init__(self, root: tk.Tk) -> None:
         self.root = root
-        self.root.title("Serial Port Opener")
+        self.root.title("Remote Car Plotter")
         self.root.geometry("1280x720")
         self.serial_port = None
         self.killed = False
@@ -51,6 +51,7 @@ class SerialApp:
         self.terminal = tk.Text(root, width=180)
         self.terminal.grid(row=1, column=0, columnspan=3)
 
+        # Create a ANSI escape sequence decoder and parser for the terminal
         self.formatter = tkAnsiFormatter(text=self.terminal)
 
         # Create figures and a canvas to draw on
@@ -74,6 +75,7 @@ class SerialApp:
         return [port.device for port in ports]
 
     def close(self) -> None:
+        # Flag the process as dead and close serial port
         self.killed = True
         if self.serial_port and self.serial_port.is_open:
             self.serial_port.close()
@@ -115,9 +117,12 @@ class SerialApp:
             if self.killed:
                 return
             # Update the graph
-            self.lspd_figure.draw()
-            self.rspd_figure.draw()
-            self.delta_figure.draw()
+            try:
+                self.lspd_figure.draw()
+                self.rspd_figure.draw()
+                self.delta_figure.draw()
+            except RuntimeError:
+                pass
             sleep(0.05)
 
     def read_from_port(self) -> None:
@@ -135,6 +140,7 @@ class SerialApp:
                 if self.auto_scroll.get():
                     self.terminal.see(tk.END)
             sleep(0.1)
+        
 
 
 if __name__ == "__main__":
