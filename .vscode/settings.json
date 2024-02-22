@@ -73,6 +73,7 @@
     "Rpwm",
     "Rspd",
     "rssi",
+    "serr",
     "Striked",
     "timespan",
     "tkagg",

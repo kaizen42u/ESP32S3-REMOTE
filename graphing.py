@@ -6,6 +6,7 @@ import serial
 import threading
 from ansi_encoding import ANSI
 from pltGraph import pltGraph
+from tkinter import ttk
 
 from tkAnsiFormatter import tkAnsiFormatter
 
@@ -68,7 +69,7 @@ class SerialApp:
         # self.delta_figure.set_ylim(-10, 10)
 
         # Create threads to draw figures and serial port reading
-        self.draw_graphs_thread=threading.Thread(target=self.draw_graphs)
+        self.draw_graphs_thread = threading.Thread(target=self.draw_graphs)
         self.draw_graphs_thread.start()
         self.read_serial_thread = threading.Thread(target=self.read_from_port)
         self.read_serial_thread.start()
@@ -101,13 +102,17 @@ class SerialApp:
     def connect_serial(self):
         self.serial_port = serial.Serial(self.port_var.get())
         self.conn_button.config(text="Disconnect")
-        self.write_terminal(f"{ANSI.bBrightMagenta} Port [{self.port_var.get()}] Connected{ANSI.default}\n")
+        self.write_terminal(
+            f"{ANSI.bBrightMagenta} Port [{self.port_var.get()}] Connected{ANSI.default}\n"
+        )
 
     def disconnect_serial(self):
         if self.serial_port and self.serial_port.is_open:
             self.serial_port.close()
             self.conn_button.config(text="Connect")
-            self.write_terminal(f"{ANSI.bBrightMagenta} Port [{self.port_var.get()}] Disconnected{ANSI.default}\n")
+            self.write_terminal(
+                f"{ANSI.bBrightMagenta} Port [{self.port_var.get()}] Disconnected{ANSI.default}\n"
+            )
 
     def update_graphs(self, reading: str) -> None:
         escaped = self.formatter.escaped(reading)
@@ -152,14 +157,14 @@ class SerialApp:
             while self.serial_port and self.serial_port.is_open:
                 try:
                     line = self.serial_port.readline()
-                    
+
                 except serial.SerialException as serr:
                     self.disconnect_serial()
                     print(f"Could not read port [{self.port_var.get()}]: {serr}")
 
                 except TypeError as terr:
                     print(f"Bad serial data for port [{self.port_var.get()}]: {terr}")
-                
+
                 if not line:
                     break
                 reading = line.decode("utf-8")
