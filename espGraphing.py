@@ -5,7 +5,7 @@ import serial.tools.list_ports
 import serial
 import threading
 from ansiEncoding import ANSI
-from pltGraph import pltGraph
+from tkPlotGraph import tkPlotGraph
 from tkinter import Misc, ttk
 
 from tkAnsiFormatter import tkAnsiFormatter
@@ -54,15 +54,15 @@ class SerialApp:
         self.formatter = tkAnsiFormatter(text=self.terminal)
 
         # Create figures and a canvas to draw on
-        self.lspd_figure = pltGraph(root=root, title="Left Motor Velocity")
+        self.lspd_figure = tkPlotGraph(root=root, title="Left Motor Velocity")
         self.lspd_figure.grid(row=2, column=0)
         self.lspd_figure.set_ylim(-2, 15)
 
-        self.rspd_figure = pltGraph(root=root, title="Right Motor Velocity")
+        self.rspd_figure = tkPlotGraph(root=root, title="Right Motor Velocity")
         self.rspd_figure.grid(row=2, column=1)
         self.rspd_figure.set_ylim(-2, 15)
 
-        self.delta_figure = pltGraph(root=root, title="Delta Error")
+        self.delta_figure = tkPlotGraph(root=root, title="Delta Error")
         self.delta_figure.grid(row=2, column=2)
         # self.delta_figure.set_ylim(-10, 10)
 

@@ -6,7 +6,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 matplotlib.use("Agg")
 
 
-class pltGraph:
+class tkPlotGraph:
     def __init__(
         self,
         root: Misc,
