@@ -1,4 +1,4 @@
-from tkinter import Tk
+from tkinter import Misc, Tk
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -9,7 +9,7 @@ matplotlib.use("Agg")
 class pltGraph:
     def __init__(
         self,
-        root: Tk,
+        root: Misc,
         figsize: tuple[int, int] = (5, 4),
         dpi: int = 80,
         timespan: int = 5000,

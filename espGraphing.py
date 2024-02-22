@@ -4,9 +4,9 @@ import tkinter as tk
 import serial.tools.list_ports
 import serial
 import threading
-from ansi_encoding import ANSI
+from ansiEncoding import ANSI
 from pltGraph import pltGraph
-from tkinter import ttk
+from tkinter import Misc, ttk
 
 from tkAnsiFormatter import tkAnsiFormatter
 
@@ -16,10 +16,8 @@ matplotlib.use("Agg")
 
 
 class SerialApp:
-    def __init__(self, root: tk.Tk) -> None:
+    def __init__(self, root: Misc) -> None:
         self.root = root
-        self.root.title("Remote Car Plotter")
-        self.root.geometry("1280x720")
         self.serial_port = None
         self.killed = False
         self.auto_scroll = tk.BooleanVar(value=True)
@@ -180,7 +178,18 @@ class SerialApp:
 if __name__ == "__main__":
 
     root = tk.Tk()
-    app = SerialApp(root)
+    root.title("Remote Car Plotter")
+    root.geometry("1280x720")
+    
+    tabControl = ttk.Notebook(root)
+    tab1 = ttk.Frame(tabControl)
+    tab2 = ttk.Frame(tabControl)
+    
+    tabControl.add(tab1, text="Main")
+    tabControl.add(tab2, text="PID settings")
+    tabControl.pack(expand=1, fill="both")
+    
+    app = SerialApp(tab1)
     root.mainloop()
     print("Exiting")
     app.close()
