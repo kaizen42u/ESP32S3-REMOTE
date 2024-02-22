@@ -68,8 +68,10 @@ class SerialApp:
         # self.delta_figure.set_ylim(-10, 10)
 
         # Create threads to draw figures and serial port reading
-        threading.Thread(target=self.draw_graphs).start()
-        threading.Thread(target=self.read_from_port).start()
+        self.draw_graphs_thread=threading.Thread(target=self.draw_graphs)
+        self.draw_graphs_thread.start()
+        self.read_serial_thread = threading.Thread(target=self.read_from_port)
+        self.read_serial_thread.start()
 
     def get_ports(self) -> list[str]:
         # Get a list of all available serial ports
@@ -79,6 +81,8 @@ class SerialApp:
     def close(self) -> None:
         # Flag the process as dead and close serial port
         self.killed = True
+        self.draw_graphs_thread.join()
+        self.read_serial_thread.join()
 
     def connect_toggle(self) -> None:
         # If already connected, disconnect
@@ -149,9 +153,12 @@ class SerialApp:
                 try:
                     line = self.serial_port.readline()
                     
-                except serial.SerialException as e:
+                except serial.SerialException as serr:
                     self.disconnect_serial()
-                    print(f"Could not read port {self.port_var.get()}: {e}")
+                    print(f"Could not read port [{self.port_var.get()}]: {serr}")
+
+                except TypeError as terr:
+                    print(f"Bad serial data for port [{self.port_var.get()}]: {terr}")
                 
                 if not line:
                     break
@@ -170,5 +177,5 @@ if __name__ == "__main__":
     root = tk.Tk()
     app = SerialApp(root)
     root.mainloop()
-    app.close()
     print("Exiting")
+    app.close()
