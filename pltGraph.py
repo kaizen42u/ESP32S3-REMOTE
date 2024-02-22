@@ -26,6 +26,14 @@ class pltGraph:
         self.times = []
         self.do_ylim = False
 
+        # Configure Axes object
+        self.ax = self.figure.add_subplot(111)
+        self.ax.set_title(self.title)
+        if self.do_ylim:
+            self.ax.set_ylim(self.low_ylim, self.high_ylim)
+        self.ax.grid()
+        self.line, = self.ax.plot(self.times, self.data)
+
     # Partial function of tk.grid()
     def grid(self, row: int = 2, column: int = 0) -> None:
         self.canvas.get_tk_widget().grid(row=row, column=column)
@@ -54,11 +62,17 @@ class pltGraph:
     # Draw graph on canvas
     def draw(self) -> None:
         # Update the graph
-        self.figure.clear()
-        ax = self.figure.add_subplot(111)
-        ax.plot(self.times, self.data)
-        ax.set_title(self.title)
+        self.line.set_data(self.times, self.data)
+
+        # Rescale the x-axis to fit the new data
+        if len(self.times) >= 2:
+            self.ax.set_xlim(self.times[0], self.times[-1])
+        
+        # Rescale the y-axis to fit the new data
         if self.do_ylim:
-            ax.set_ylim(self.low_ylim, self.high_ylim)
-        ax.grid()
+            self.ax.set_ylim(self.low_ylim, self.high_ylim)
+        else:
+            self.ax.relim()
+            self.ax.autoscale_view()
+
         self.canvas.draw()

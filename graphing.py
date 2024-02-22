@@ -4,6 +4,7 @@ import tkinter as tk
 import serial.tools.list_ports
 import serial
 import threading
+from ansi_encoding import ANSI
 from pltGraph import pltGraph
 
 from tkAnsiFormatter import tkAnsiFormatter
@@ -66,8 +67,9 @@ class SerialApp:
         self.delta_figure.grid(row=2, column=2)
         # self.delta_figure.set_ylim(-10, 10)
 
-        # Create a thread to draw figures
+        # Create threads to draw figures and serial port reading
         threading.Thread(target=self.draw_graphs).start()
+        threading.Thread(target=self.read_from_port).start()
 
     def get_ports(self) -> list[str]:
         # Get a list of all available serial ports
@@ -77,24 +79,31 @@ class SerialApp:
     def close(self) -> None:
         # Flag the process as dead and close serial port
         self.killed = True
-        if self.serial_port and self.serial_port.is_open:
-            self.serial_port.close()
 
     def connect_toggle(self) -> None:
         # If already connected, disconnect
         if self.serial_port and self.serial_port.is_open:
-            self.serial_port.close()
-            self.conn_button.config(text="Connect")
+            self.disconnect_serial()
             return
 
         # Otherwise, try to connect
         self.reset_graphs()
         try:
-            self.serial_port = serial.Serial(self.port_var.get())
-            self.conn_button.config(text="Disconnect")
-            threading.Thread(target=self.read_from_port).start()
+            self.connect_serial()
+
         except serial.SerialException as e:
             print(f"Could not open port {self.port_var.get()}: {e}")
+
+    def connect_serial(self):
+        self.serial_port = serial.Serial(self.port_var.get())
+        self.conn_button.config(text="Disconnect")
+        self.write_terminal(f"{ANSI.bBrightMagenta} Port [{self.port_var.get()}] Connected{ANSI.default}\n")
+
+    def disconnect_serial(self):
+        if self.serial_port and self.serial_port.is_open:
+            self.serial_port.close()
+            self.conn_button.config(text="Connect")
+            self.write_terminal(f"{ANSI.bBrightMagenta} Port [{self.port_var.get()}] Disconnected{ANSI.default}\n")
 
     def update_graphs(self, reading: str) -> None:
         escaped = self.formatter.escaped(reading)
@@ -115,31 +124,45 @@ class SerialApp:
     def draw_graphs(self) -> None:
         while True:
             if self.killed:
+                print("Graphing thread exited")
                 return
-            # Update the graph
+            sleep(0.05)
+
+            # Update graph
             try:
                 self.lspd_figure.draw()
                 self.rspd_figure.draw()
                 self.delta_figure.draw()
             except RuntimeError:
                 pass
-            sleep(0.05)
 
     def read_from_port(self) -> None:
-        while self.serial_port:
+        while True:
             if self.killed:
+                self.disconnect_serial()
+                print("Serial Port thread exited")
                 return
-            while self.serial_port.is_open:
-                line = self.serial_port.readline()
+            sleep(0.1)
+
+            # Reads serial port data by line
+            while self.serial_port and self.serial_port.is_open:
+                try:
+                    line = self.serial_port.readline()
+                    
+                except serial.SerialException as e:
+                    self.disconnect_serial()
+                    print(f"Could not read port {self.port_var.get()}: {e}")
+                
                 if not line:
                     break
                 reading = line.decode("utf-8")
                 self.update_graphs(reading)
+                self.write_terminal(reading)
 
-                self.formatter.insert_ansi(reading, "end")
-                if self.auto_scroll.get():
-                    self.terminal.see(tk.END)
-            sleep(0.1)
+    def write_terminal(self, reading):
+        self.formatter.insert_ansi(reading, "end")
+        if self.auto_scroll.get():
+            self.terminal.see(tk.END)
 
 
 if __name__ == "__main__":
@@ -148,3 +171,4 @@ if __name__ == "__main__":
     app = SerialApp(root)
     root.mainloop()
     app.close()
+    print("Exiting")
