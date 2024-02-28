@@ -1,16 +1,18 @@
 import re
-from time import sleep
-import tkinter as tk
-import serial.tools.list_ports
-import serial
+import sys
 import threading
-from ansiEncoding import ANSI
-from tkPlotGraph import tkPlotGraph
+import tkinter as tk
+from time import sleep
 from tkinter import Misc, ttk
 
-from tkAnsiFormatter import tkAnsiFormatter
-
 import matplotlib
+import serial
+import serial.tools.list_ports
+
+from ansiEncoding import ANSI
+from tkAnsiFormatter import tkAnsiFormatter
+from tkPlotGraph import tkPlotGraph
+from tkTerminal import tkTerminal
 
 matplotlib.use("Agg")
 
@@ -41,17 +43,21 @@ class SerialApp:
 
         # Create auto scroll checkbox
         self.scroll_check = tk.Checkbutton(
-            root, text="Auto Scroll", variable=self.auto_scroll
+            root,
+            text="Auto Scroll",
+            variable=self.auto_scroll,
+            command=lambda: self.terminal.set_autoscroll(self.auto_scroll.get()),
         )
         self.scroll_check.config(width=20)
         self.scroll_check.grid(row=0, column=2)
 
-        # Create a text widget for the terminal
-        self.terminal = tk.Text(root, width=180)
-        self.terminal.grid(row=1, column=0, columnspan=3)
+        # Create a scrollbar
+        scrollbar = tk.Scrollbar(root)
+        scrollbar.grid(row=1, column=3, sticky="ns")
 
-        # Create a ANSI escape sequence decoder and parser for the terminal
-        self.formatter = tkAnsiFormatter(text=self.terminal)
+        # Create the terminal
+        self.terminal = tkTerminal(root, width=180)
+        self.terminal.grid(row=1, column=0, columnspan=3)
 
         # Create figures and a canvas to draw on
         self.lspd_figure = tkPlotGraph(root=root, title="Left Motor Velocity")
@@ -95,12 +101,21 @@ class SerialApp:
             self.connect_serial()
 
         except serial.SerialException as e:
-            print(f"Could not open port {self.port_var.get()}: {e}")
+            self.show_message(f"Could not open port [{self.port_var.get()}]: {e}")
 
     def connect_serial(self):
+
+        # Resets MCU
         self.serial_port = serial.Serial(self.port_var.get())
+        self.serial_port.close()
+
+        # Open port
+        self.serial_port = serial.Serial(
+            self.port_var.get(), baudrate=115200, timeout=1.0
+        )
         self.conn_button.config(text="Disconnect")
-        self.write_terminal(
+
+        self.terminal.write(
             f"{ANSI.bBrightMagenta} Port [{self.port_var.get()}] Connected{ANSI.default}\n"
         )
 
@@ -108,14 +123,13 @@ class SerialApp:
         if self.serial_port and self.serial_port.is_open:
             self.serial_port.close()
             self.conn_button.config(text="Connect")
-            self.write_terminal(
+            self.terminal.write(
                 f"{ANSI.bBrightMagenta} Port [{self.port_var.get()}] Disconnected{ANSI.default}\n"
             )
 
     def update_graphs(self, reading: str) -> None:
-        escaped = self.formatter.escaped(reading)
         match = re.search(
-            r"I \((\d+)\).*Lspd:( *[-\d.]+).*Rspd:( *[-\d.]+).*Δd:( *[-\d.]+)", escaped
+            r"I \((\d+)\).*Lspd:( *[-\d.]+).*Rspd:( *[-\d.]+).*Δd:( *[-\d.]+)", reading
         )
         if match:
             time, lspd, rspd, errdis = map(float, match.groups())
@@ -141,13 +155,14 @@ class SerialApp:
                 self.rspd_figure.draw()
                 self.delta_figure.draw()
             except RuntimeError:
+                self.show_message(str(sys.exc_info()))
                 pass
 
     def read_from_port(self) -> None:
         while True:
             if self.killed:
+                print("Serial Port thread exiting")
                 self.disconnect_serial()
-                print("Serial Port thread exited")
                 return
             sleep(0.1)
 
@@ -156,23 +171,34 @@ class SerialApp:
                 try:
                     line = self.serial_port.readline()
 
+                    # Check if line is not empty
+                    if not line:
+                        break
+
+                    reading = line.decode("utf-8")
+                    self.update_graphs(reading)
+                    self.terminal.write(reading)
+
                 except serial.SerialException as serr:
                     self.disconnect_serial()
-                    print(f"Could not read port [{self.port_var.get()}]: {serr}")
+                    self.show_message(
+                        f"Could not read port [{self.port_var.get()}]: {serr}"
+                    )
 
                 except TypeError as terr:
-                    print(f"Bad serial data for port [{self.port_var.get()}]: {terr}")
+                    self.show_message(
+                        f"Bad serial data for port [{self.port_var.get()}]: {terr}"
+                    )
 
-                if not line:
-                    break
-                reading = line.decode("utf-8")
-                self.update_graphs(reading)
-                self.write_terminal(reading)
+    def show_message(self, msg: str) -> None:
+        self.terminal.write(f"{ANSI.bBrightMagenta}{msg}{ANSI.default}\n")
+        print(msg)
 
-    def write_terminal(self, reading):
-        self.formatter.insert_ansi(reading, "end")
-        if self.auto_scroll.get():
-            self.terminal.see(tk.END)
+
+def on_closing():
+    print("Exiting")
+    app.close()
+    root.destroy()
 
 
 if __name__ == "__main__":
@@ -180,16 +206,15 @@ if __name__ == "__main__":
     root = tk.Tk()
     root.title("Remote Car Plotter")
     root.geometry("1280x720")
-    
+
     tabControl = ttk.Notebook(root)
     tab1 = ttk.Frame(tabControl)
     tab2 = ttk.Frame(tabControl)
-    
+
     tabControl.add(tab1, text="Main")
     tabControl.add(tab2, text="PID settings")
     tabControl.pack(expand=1, fill="both")
-    
+
     app = SerialApp(tab1)
+    root.protocol("WM_DELETE_WINDOW", on_closing)
     root.mainloop()
-    print("Exiting")
-    app.close()

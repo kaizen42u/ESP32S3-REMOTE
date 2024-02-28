@@ -1,5 +1,5 @@
-import tkinter as tk
 import re
+import tkinter as tk
 from tkinter import font
 
 # dictionaries to replace formatting code with tags
@@ -42,7 +42,8 @@ class tkAnsiFormatter:
         self.size = size
         self.configure_style()
 
-    def escaped(self, str: str) -> str:
+    @staticmethod
+    def escaped(str: str) -> str:
         return ansi_escape.sub("", str)
 
     def configure_style(self) -> None:
