@@ -50,6 +50,7 @@
   "idf.port": "/dev/ttyACM0",
   "cmake.configureOnOpen": false,
   "cSpell.words": [
+    "ATTEN",
     "autoscale",
     "Blackletter",
     "Chetwode",
@@ -68,6 +69,7 @@
     "Lspd",
     "MACSTR",
     "overlined",
+    "pinmask",
     "Racc",
     "relim",
     "Rpwm",

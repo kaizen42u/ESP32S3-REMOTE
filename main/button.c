@@ -12,7 +12,7 @@ typedef struct
         uint64_t down_time_us;
 } __packed button_data_t;
 
-uint64_t pinmask = 0;
+uint64_t button_pinmask = 0;
 button_data_t button_data[BUTTON_MAX_ARRAY_SIZE];
 QueueHandle_t button_queue = NULL;
 TaskHandle_t button_task_handle = NULL;
@@ -81,7 +81,7 @@ static void button_task(void *pvParameter)
 {
         for (;;)
         {
-                uint8_t num_buttons = count_num_buttons(pinmask);
+                uint8_t num_buttons = count_num_buttons(button_pinmask);
                 for (int idx = 0; idx < num_buttons; idx++)
                 {
                         update_button(&button_data[idx]);
@@ -146,13 +146,13 @@ QueueHandle_t button_init(void)
 
 void button_register(const gpio_num_t pin, const button_config_active_t inverted)
 {
-        if (pinmask & (1ULL << pin))
+        if (button_pinmask & (1ULL << pin))
         {
                 LOG_WARNING("The gpio [%d] has been already initialized as an input", pin);
                 return;
         }
 
-        uint8_t num_buttons = count_num_buttons(pinmask);
+        uint8_t num_buttons = count_num_buttons(button_pinmask);
         LOG_INFO("Registering button on gpio: %d, id: %d", pin, num_buttons);
 
         // Configure the pins
@@ -165,7 +165,7 @@ void button_register(const gpio_num_t pin, const button_config_active_t inverted
         };
         ESP_ERROR_CHECK_WITHOUT_ABORT(gpio_config(&io_conf));
 
-        pinmask = pinmask | (1ULL << pin);
+        button_pinmask = button_pinmask | (1ULL << pin);
         button_data[num_buttons].pin = pin;
         button_data[num_buttons].down_time_us = 0;
         button_data[num_buttons].inverted = inverted;
@@ -195,12 +195,12 @@ void button_deinit(void)
         }
 
         gpio_config_t io_conf = {
-            .pin_bit_mask = pinmask,
+            .pin_bit_mask = button_pinmask,
             .mode = GPIO_MODE_DISABLE,
             .pull_up_en = GPIO_PULLUP_DISABLE,
             .pull_down_en = GPIO_PULLDOWN_DISABLE,
             .intr_type = GPIO_INTR_DISABLE,
         };
         ESP_ERROR_CHECK(gpio_config(&io_conf));
-        pinmask = 0;
+        button_pinmask = 0;
 }

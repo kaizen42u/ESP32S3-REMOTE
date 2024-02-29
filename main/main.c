@@ -15,6 +15,7 @@
 #include "logging.h"
 #include "mathop.h"
 #include "packets.h"
+#include "joystick.h"
 
 static const char __attribute__((unused)) *TAG = "app_main";
 
@@ -125,11 +126,25 @@ void app_main(void)
 	button_register(GPIO_BUTTON_TILT_LEFT, BUTTON_CONFIG_ACTIVE_LOW);
 	button_register(GPIO_BUTTON_TILT_RIGHT, BUTTON_CONFIG_ACTIVE_LOW);
 
+	QueueHandle_t joystick_event_queue = joystick_init();
+	joystick_register(GPIO_BUTTON_UP, GPIO_BUTTON_DOWN, ADC1_CHANNEL_8, false);
+	joystick_register(GPIO_BUTTON_RIGHT, GPIO_BUTTON_LEFT, ADC1_CHANNEL_9, true);
+
 	xTaskCreate(rssi_task, "rssi_task", 4096, NULL, 4, NULL);
 
 	while (true)
 	{
 		button_event_t button_event;
+
+		while (xQueueReceive(joystick_event_queue, &button_event, 0))
+		{
+			LOG_INFO("GPIO event: pin %d, state = %s --> %s", button_event.pin, BUTTON_STATE_STRING[button_event.prev_state], BUTTON_STATE_STRING[button_event.new_state]);
+
+			esp_err_t ret;
+			ret = espnow_send_data(&espnow_send_param, ESP_PEER_PACKET_TEXT, &button_event, sizeof(button_event));
+			ESP_ERROR_CHECK_WITHOUT_ABORT(ret);
+		}
+
 		while (xQueueReceive(button_event_queue, &button_event, 0))
 		{
 			LOG_INFO("GPIO event: pin %d, state = %s --> %s", button_event.pin, BUTTON_STATE_STRING[button_event.prev_state], BUTTON_STATE_STRING[button_event.new_state]);
@@ -203,7 +218,7 @@ void app_main(void)
 					if (recv_data->len == sizeof(motor_group_stat_pkt_t))
 					{
 						static motor_group_stat_pkt_t motor_stat;
-						memccpy(&motor_stat, recv_data->payload, recv_data->len, recv_data->len);
+						memccpy(&motor_stat, recv_data->payload, sizeof(motor_group_stat_pkt_t), recv_data->len);
 						motor_controller_print_stat(&motor_stat);
 					}
 
@@ -217,6 +232,7 @@ void app_main(void)
 				break;
 			}
 		}
+
 		esp_connection_handle_update(&esp_connection_handle);
 		vTaskDelay(1);
 	}

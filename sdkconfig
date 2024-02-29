@@ -521,7 +521,7 @@ CONFIG_APPTRACE_LOCK_ENABLE=y
 #
 # Legacy ADC Configuration
 #
-# CONFIG_ADC_SUPPRESS_DEPRECATE_WARN is not set
+CONFIG_ADC_SUPPRESS_DEPRECATE_WARN=y
 
 #
 # Legacy ADC Calibration Configuration
