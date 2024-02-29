@@ -1,4 +1,6 @@
-from tkinter import Misc, Tk
+import queue
+from tkinter import Misc
+
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -18,13 +20,19 @@ class tkPlotGraph:
 
         # Create a figure and a canvas to draw on
         self.figure = plt.figure(figsize=figsize, dpi=dpi)
-        self.canvas = FigureCanvasTkAgg(self.figure, master=root)
+        self.root = root
+        self.canvas = FigureCanvasTkAgg(self.figure, master=self.root)
         self.timespan = timespan
         self.title = title
 
+        # Graph data
         self.data = []
         self.times = []
+        self.data_hash = hash(tuple(self.data))
         self.do_ylim = False
+
+        # Holding the draw command for main loop to update the UI
+        self.draw_queue: queue.Queue[FigureCanvasTkAgg] = queue.Queue()
 
         # Configure Axes object
         self.ax = self.figure.add_subplot(111)
@@ -32,7 +40,7 @@ class tkPlotGraph:
         if self.do_ylim:
             self.ax.set_ylim(self.low_ylim, self.high_ylim)
         self.ax.grid()
-        self.line, = self.ax.plot(self.times, self.data)
+        (self.line,) = self.ax.plot(self.times, self.data)
 
     # Partial function of tk.grid()
     def grid(self, row: int = 2, column: int = 0) -> None:
@@ -61,18 +69,47 @@ class tkPlotGraph:
 
     # Draw graph on canvas
     def draw(self) -> None:
+
+        # Skips if no updates
+        new_hash = hash(tuple(self.data))
+        if self.data_hash is new_hash:
+            return
+        self.data_hash = new_hash
+
         # Update the graph
         self.line.set_data(self.times, self.data)
 
         # Rescale the x-axis to fit the new data
         if len(self.times) >= 2:
             self.ax.set_xlim(self.times[0], self.times[-1])
-        
+
         # Rescale the y-axis to fit the new data
         if self.do_ylim:
             self.ax.set_ylim(self.low_ylim, self.high_ylim)
         else:
             self.ax.relim()
-            self.ax.autoscale_view()
+            self.ax.autoscale_view(scalex=False)
 
         self.canvas.draw()
+        # self.draw_queue.put(self.canvas)
+
+    # Take data from the queue and update the UI
+    def update_ui(self) -> None:
+        if self.killed:
+            return
+
+        while not self.draw_queue.empty():
+            canvas = self.draw_queue.get()
+            canvas.draw()
+
+        # Schedule the next update, roughly 100 ms
+        self.root.after(100, self.update_ui)
+
+    # This function should only be called on main loop, once
+    def start(self) -> None:
+        self.killed = False
+        self.update_ui()
+
+    # This function should only be called on main loop, once
+    def stop(self) -> None:
+        self.killed = True

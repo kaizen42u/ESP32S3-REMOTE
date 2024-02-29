@@ -52,6 +52,8 @@
   "cSpell.words": [
     "ATTEN",
     "autoscale",
+    "autoscroll",
+    "baudrate",
     "Blackletter",
     "Chetwode",
     "columnspan",
@@ -75,12 +77,14 @@
     "Rpwm",
     "Rspd",
     "rssi",
+    "scalex",
     "serr",
     "Striked",
     "timespan",
     "tkagg",
     "xlim",
-    "ylim"
+    "ylim",
+    "yscrollcommand"
   ],
   "python.analysis.typeCheckingMode": "basic",
   "python.analysis.autoImportCompletions": true
