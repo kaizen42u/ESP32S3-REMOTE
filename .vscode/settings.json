@@ -1,6 +1,6 @@
 {
   "C_Cpp.intelliSenseEngine": "default",
-  "idf.portWin": "COM9",
+  "idf.portWin": "COM5",
   "idf.adapterTargetName": "esp32s3",
   "idf.openOcdConfigs": [
     "board/esp32s3-builtin.cfg"
@@ -70,6 +70,7 @@
     "Lpwm",
     "Lspd",
     "MACSTR",
+    "MCPWM",
     "overlined",
     "pinmask",
     "Racc",

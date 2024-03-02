@@ -20,5 +20,5 @@
 #include "button.h"
 
 QueueHandle_t joystick_init(void);
-void joystick_register(const gpio_num_t high_pin, const gpio_num_t low_pin, const adc_channel_t channel, const bool inverted);
+void joystick_register(const gpio_num_t high_pin, const gpio_num_t low_pin, const gpio_num_t adc_pin, const bool inverted);
 void joystick_deinit(void);

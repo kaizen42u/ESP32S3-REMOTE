@@ -134,8 +134,9 @@ QueueHandle_t joystick_init(void)
         return joystick_queue;
 }
 
-void joystick_register(const gpio_num_t high_pin, const gpio_num_t low_pin, const adc_channel_t channel, const bool inverted)
+void joystick_register(const gpio_num_t high_pin, const gpio_num_t low_pin, const gpio_num_t adc_pin, const bool inverted)
 {
+        adc_channel_t channel = adc_pin - 1;
         if (joystick_pinmask & (1ULL << channel))
         {
                 LOG_WARNING("The adc1 channel [%d] has been already initialized as an input", channel);
