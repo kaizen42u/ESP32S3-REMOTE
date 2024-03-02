@@ -47,7 +47,7 @@
     "*.tcc": "c",
     "xiosbase": "c"
   },
-  "idf.port": "/dev/ttyACM0",
+  "idf.port": "/dev/ttyUSB0",
   "cmake.configureOnOpen": false,
   "cSpell.words": [
     "ATTEN",

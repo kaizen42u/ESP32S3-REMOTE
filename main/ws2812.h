@@ -31,7 +31,7 @@ typedef struct
         uint16_t h;
         uint8_t s;
         uint8_t v;
-} __packed ws2812_hsv_t;
+} ws2812_hsv_t;
 
 typedef struct
 {
