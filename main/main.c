@@ -16,26 +16,29 @@
 #include "mathop.h"
 #include "packets.h"
 #include "joystick.h"
+#include "eeprom.h"
+#include "device_settings.h"
 
 static const char __attribute__((unused)) *TAG = "app_main";
 
 static espnow_send_param_t espnow_send_param;
 static esp_connection_handle_t esp_connection_handle;
+static device_settings_t device_settings;
 
 void motor_controller_print_stat(motor_group_stat_pkt_t *motor_stat)
 {
 	LOG_INFO("Lcnt:%6d, Rcnt:%6d | Lspd:%6.3f, Rspd:%6.3f | Lacc:%6.3f, Racc:%6.3f | Lpwm:%6.3f, Rpwm:%6.3f | Δd: %6.3f | Δs: %6.3f",
-			 motor_stat->left_motor.counter, motor_stat->right_motor.counter,
-			 motor_stat->left_motor.velocity, motor_stat->right_motor.velocity,
-			 motor_stat->left_motor.acceleration, motor_stat->right_motor.acceleration,
-			 motor_stat->left_motor.duty_cycle, motor_stat->right_motor.duty_cycle,
-			 motor_stat->delta_distance,
-			 motor_stat->delta_velocity);
+		 motor_stat->left_motor.counter, motor_stat->right_motor.counter,
+		 motor_stat->left_motor.velocity, motor_stat->right_motor.velocity,
+		 motor_stat->left_motor.acceleration, motor_stat->right_motor.acceleration,
+		 motor_stat->left_motor.duty_cycle, motor_stat->right_motor.duty_cycle,
+		 motor_stat->delta_distance,
+		 motor_stat->delta_velocity);
 }
 
 void rssi_task()
 {
-	ws2812_hsv_t hsv = {.h = 350, .s = 75, .v = 0};
+	ws2812_hsv_t hsv = {.h = RGB_LED_HUE, .s = RGB_LED_SATURATION, .v = 0};
 	ws2812_handle_t ws2812_handle;
 	ws2812_default_config(&ws2812_handle);
 	ws2812_init(&ws2812_handle);
@@ -63,7 +66,7 @@ void rssi_task()
 			// print_rssi_event(&rssi_event);
 			esp_connection_update_rssi(&esp_connection_handle, &rssi_event);
 
-			const int rssi_min = -20;
+			const int rssi_min = MIN_RSSI_TO_INITIATE_CONNECTION;
 			if (rssi_event.rssi > rssi_min)
 			{
 				countdown = ping_reset * 3;
@@ -79,7 +82,7 @@ void rssi_task()
 		else
 		{
 			if (esp_connection_handle.remote_connected)
-				hsv.v = 3 * esp_connection_handle.remote_connected;
+				hsv.v = RGB_LED_VALUE * esp_connection_handle.remote_connected;
 			else
 				hsv.v = 0;
 			ws2812_set_hsv(&ws2812_handle, &hsv);
@@ -89,24 +92,56 @@ void rssi_task()
 	}
 }
 
+void ping_task()
+{
+        for (;;)
+        {
+                esp_connection_send_heartbeat(&esp_connection_handle);
+                vTaskDelay(pdMS_TO_TICKS(300));
+        }
+}
+
+void power_switch_task()
+{
+	// int32_t elapsed_time = 0;
+	for (;;)
+	{
+		// (esp_connection_handle.remote_connected) ? elapsed_time = 0 : elapsed_time++;
+		// (elapsed_time >= TIME_BEFORE_RESET) ? kill_power() : keep_power();
+		if (SHOW_CONNECTION_STATUS)
+			esp_connection_show_entries(&esp_connection_handle);
+		vTaskDelay(pdMS_TO_TICKS(3000));
+	}
+}
+
 void app_main(void)
 {
 	// Initialize NVS
 	esp_err_t ret = nvs_flash_init();
 	if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
 	{
+		LOG_WARNING("Resetting EEPROM data!");
+		// NVS partition was truncated and needs to be erased
+		// Retry nvs_flash_init
 		ESP_ERROR_CHECK(nvs_flash_erase());
 		ret = nvs_flash_init();
 	}
 	ESP_ERROR_CHECK(ret);
+
+	device_settings_init(&device_settings);
 
 	espnow_config_t espnow_config;
 	espnow_wifi_default_config(&espnow_config);
 	espnow_wifi_init(&espnow_config);
 	espnow_default_send_param(&espnow_send_param);
 	esp_connection_handle_init(&esp_connection_handle);
+	esp_connection_handle_connect_to_device_settings(&esp_connection_handle, &device_settings);
 	esp_connection_set_peer_limit(&esp_connection_handle, 1);
 	QueueHandle_t espnow_event_queue = espnow_init(&espnow_config, &esp_connection_handle);
+	esp_connection_enable_broadcast(&esp_connection_handle);
+
+	esp_connection_mac_add_to_entry(&esp_connection_handle, device_settings.remote_conn_mac);
+	espnow_default_send_param(&espnow_send_param);
 
 	ret = espnow_send_text(&espnow_send_param, "device init");
 	if (ret != ESP_OK)
@@ -131,6 +166,10 @@ void app_main(void)
 	joystick_register(GPIO_BUTTON_RIGHT, GPIO_BUTTON_LEFT, JOYSTICK_SHIELD_JOYSTICK_X, true);
 
 	xTaskCreate(rssi_task, "rssi_task", 4096, NULL, 4, NULL);
+        xTaskCreate(ping_task, "ping_task", 4096, NULL, 4, NULL);
+	xTaskCreate(power_switch_task, "power_switch_task", 4096, NULL, 4, NULL);
+
+	esp_connection_set_unique_peer_mac(&esp_connection_handle, device_settings.remote_conn_mac);
 
 	while (true)
 	{
@@ -141,6 +180,7 @@ void app_main(void)
 			LOG_INFO("GPIO event: pin %d, state = %s --> %s", button_event.pin, BUTTON_STATE_STRING[button_event.prev_state], BUTTON_STATE_STRING[button_event.new_state]);
 
 			esp_err_t ret;
+			// LOG_WARNING("sending to peer " MACSTR, MAC2STR(espnow_send_param.dest_mac));
 			ret = espnow_send_data(&espnow_send_param, ESP_PEER_PACKET_TEXT, &button_event, sizeof(button_event));
 			ESP_ERROR_CHECK_WITHOUT_ABORT(ret);
 		}
@@ -213,6 +253,8 @@ void app_main(void)
 				espnow_get_send_param(&espnow_send_param, peer);
 				esp_peer_process_received(peer, recv_data);
 
+				// LOG_WARNING("peer " MACSTR " is %s", MAC2STR(recv_cb->mac_addr), recv_data->broadcast ? "BROADCAST": "UNICAST");
+
 				if (recv_data->type == ESPNOW_PARAM_TYPE_MOTOR_STAT)
 				{
 					if (recv_data->len == sizeof(motor_group_stat_pkt_t))
@@ -224,6 +266,9 @@ void app_main(void)
 
 					// print_mem(recv_data->payload, recv_data->len);
 				}
+
+				// if (recv_data->type != ESPNOW_PARAM_TYPE_ACK)
+				// espnow_reply(&espnow_send_param);
 
 				free(recv_cb->data);
 				break;
