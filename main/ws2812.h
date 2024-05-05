@@ -17,9 +17,7 @@ typedef struct
         {
                 struct
                 {
-                        uint8_t g;
-                        uint8_t r;
-                        uint8_t b;
+                        uint8_t g, r, b;
                 };
                 uint8_t pixels[3];
         };
@@ -31,7 +29,7 @@ typedef struct
         uint16_t h;
         uint8_t s;
         uint8_t v;
-} ws2812_hsv_t;
+} __packed ws2812_hsv_t;
 
 typedef struct
 {
