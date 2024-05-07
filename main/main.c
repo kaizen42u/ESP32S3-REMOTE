@@ -110,6 +110,7 @@ void power_switch_task()
 		// (elapsed_time >= TIME_BEFORE_RESET) ? kill_power() : keep_power();
 		if (SHOW_CONNECTION_STATUS)
 			esp_connection_show_entries(&esp_connection_handle);
+		print_joystick_stat();
 		vTaskDelay(pdMS_TO_TICKS(3000));
 	}
 }
@@ -130,10 +131,10 @@ void app_main(void)
 
 	device_settings_init(&device_settings);
 
-	espnow_config_t espnow_config;
+	espnow_wifi_config_t espnow_config;
 	espnow_wifi_default_config(&espnow_config);
 	espnow_wifi_init(&espnow_config);
-	espnow_default_send_param(&espnow_send_param);
+	espnow_get_default_send_param(&espnow_send_param);
 	esp_connection_handle_init(&esp_connection_handle);
 	esp_connection_handle_connect_to_device_settings(&esp_connection_handle, &device_settings);
 	esp_connection_set_peer_limit(&esp_connection_handle, 1);
@@ -141,7 +142,7 @@ void app_main(void)
 	esp_connection_enable_broadcast(&esp_connection_handle);
 
 	esp_connection_mac_add_to_entry(&esp_connection_handle, device_settings.remote_conn_mac);
-	espnow_default_send_param(&espnow_send_param);
+	espnow_get_default_send_param(&espnow_send_param);
 
 	ret = espnow_send_text(&espnow_send_param, "device init");
 	if (ret != ESP_OK)
@@ -162,8 +163,9 @@ void app_main(void)
 	button_register(JOYSTICK_SHIELD_BUTTON_K, BUTTON_CONFIG_ACTIVE_LOW);
 
 	QueueHandle_t joystick_event_queue = joystick_init();
-	joystick_register(GPIO_BUTTON_UP, GPIO_BUTTON_DOWN, JOYSTICK_SHIELD_JOYSTICK_Y, false);
 	joystick_register(GPIO_BUTTON_RIGHT, GPIO_BUTTON_LEFT, JOYSTICK_SHIELD_JOYSTICK_X, true);
+	joystick_register(GPIO_BUTTON_UP, GPIO_BUTTON_DOWN, JOYSTICK_SHIELD_JOYSTICK_Y, false);
+	joystick_calibrate();
 
 	xTaskCreate(rssi_task, "rssi_task", 4096, NULL, 4, NULL);
         xTaskCreate(ping_task, "ping_task", 4096, NULL, 4, NULL);
@@ -181,7 +183,7 @@ void app_main(void)
 
 			esp_err_t ret;
 			// LOG_WARNING("sending to peer " MACSTR, MAC2STR(espnow_send_param.dest_mac));
-			ret = espnow_send_data(&espnow_send_param, ESP_PEER_PACKET_TEXT, &button_event, sizeof(button_event));
+			ret = espnow_send_data(&espnow_send_param, ESPNOW_PACKET_TYPE_TEXT, &button_event, sizeof(button_event));
 			ESP_ERROR_CHECK_WITHOUT_ABORT(ret);
 		}
 
@@ -190,7 +192,7 @@ void app_main(void)
 			LOG_INFO("GPIO event: pin %d, state = %s --> %s", button_event.pin, BUTTON_STATE_STRING[button_event.prev_state], BUTTON_STATE_STRING[button_event.new_state]);
 
 			esp_err_t ret;
-			ret = espnow_send_data(&espnow_send_param, ESP_PEER_PACKET_TEXT, &button_event, sizeof(button_event));
+			ret = espnow_send_data(&espnow_send_param, ESPNOW_PACKET_TYPE_TEXT, &button_event, sizeof(button_event));
 			ESP_ERROR_CHECK_WITHOUT_ABORT(ret);
 
 			char temp[64];
@@ -226,7 +228,7 @@ void app_main(void)
 		espnow_event_t espnow_evt;
 		while (xQueueReceive(espnow_event_queue, &espnow_evt, 0))
 		{
-			espnow_data_t *recv_data = NULL;
+			espnow_packet_t *recv_data = NULL;
 			switch (espnow_evt.id)
 			{
 			case ESPNOW_SEND_CB:
@@ -249,13 +251,13 @@ void app_main(void)
 					break;
 				}
 
-				esp_peer_t *peer = esp_connection_mac_add_to_entry(&esp_connection_handle, recv_cb->mac_addr);
+				esp_peer_handle_t *peer = esp_connection_mac_add_to_entry(&esp_connection_handle, recv_cb->mac_addr);
 				espnow_get_send_param(&espnow_send_param, peer);
 				esp_peer_process_received(peer, recv_data);
 
 				// LOG_WARNING("peer " MACSTR " is %s", MAC2STR(recv_cb->mac_addr), recv_data->broadcast ? "BROADCAST": "UNICAST");
 
-				if (recv_data->type == ESPNOW_PARAM_TYPE_MOTOR_STAT)
+				if (recv_data->type == ESPNOW_PACKET_TYPE_MOTOR_STAT)
 				{
 					if (recv_data->len == sizeof(motor_group_stat_pkt_t))
 					{

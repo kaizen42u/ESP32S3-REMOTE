@@ -18,7 +18,10 @@
 
 #include "logging.h"
 #include "button.h"
+#include "mathop.h"
 
 QueueHandle_t joystick_init(void);
 void joystick_register(const gpio_num_t high_pin, const gpio_num_t low_pin, const gpio_num_t adc_pin, const bool inverted);
 void joystick_deinit(void);
+void joystick_calibrate(void);
+void print_joystick_stat(void);

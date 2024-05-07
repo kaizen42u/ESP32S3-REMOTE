@@ -12,6 +12,8 @@ typedef struct
         bool inverted;
         int raw;
         int voltage;
+
+        int low, center, high;
 } __packed joystick_data_t;
 
 uint64_t joystick_pinmask = 0;
@@ -66,18 +68,28 @@ static void update_joystick(joystick_data_t *joystick)
         joystick->raw = adc1_get_raw(joystick->channel);
         // LOG_INFO("adc channel [%d], raw  data: %d", joystick->channel, joystick->raw);
         joystick->voltage = esp_adc_cal_raw_to_voltage(joystick->raw, &adc1_chars);
-        // LOG_INFO("adc channel [%d], cali data: %d mV", joystick->channel, joystick->voltage);
+        // LOG_INFO("adc channel [%d], raw  data: %d, cali data: %d mV", joystick->channel, joystick->raw, joystick->voltage);
 
-        if (joystick->voltage < 700)
+        if (joystick->voltage < joystick->low)
+                joystick->low = joystick->voltage;
+        if (joystick->voltage > joystick->high)
+                joystick->high = joystick->voltage;
+
+        int low_threshold = (joystick->low + joystick->center) / 2;
+        int low_recover_threshold = low_threshold * 1.5;
+        int high_threshold = (joystick->center + joystick->high) / 2;
+        int high_recover_threshold = high_threshold * 0.75;
+
+        if (joystick->voltage == 0 || joystick->voltage < low_threshold)
                 joystick->low_state = BUTTON_DOWN;
-        if (joystick->voltage > 900 && joystick->voltage < 2400)
-                joystick->low_state = BUTTON_UP;
-
-        if (joystick->voltage > 2400)
+        if (joystick->voltage > high_threshold)
                 joystick->high_state = BUTTON_DOWN;
 
-        if (joystick->voltage < 2300 && joystick->voltage > 1400)
+        if (joystick->voltage > low_recover_threshold && joystick->voltage < high_recover_threshold)
+        {
+                joystick->low_state = BUTTON_UP;
                 joystick->high_state = BUTTON_UP;
+        }
 
         if (joystick->low_state != old_low_state)
                 joystick_send_event(joystick->low_pin, joystick->low_state, old_low_state);
@@ -96,6 +108,22 @@ uint8_t count_num_joysticks(const uint64_t bitfield)
                 count++;
         }
         return count;
+}
+
+void joystick_calibrate(void)
+{
+        uint8_t num_joysticks = count_num_joysticks(joystick_pinmask);
+        LOG_INFO("joystick calibration info : ")
+        for (int idx = 0; idx < num_joysticks; idx++)
+        {
+                joystick_data_t *joystick = &joystick_data[idx];
+                joystick->raw = adc1_get_raw(joystick->channel);
+                joystick->voltage = esp_adc_cal_raw_to_voltage(joystick->raw, &adc1_chars);
+                joystick->center = joystick->voltage;
+                joystick->low = constrain(joystick->voltage - 200, 0, 3300);
+                joystick->high = constrain(joystick->voltage + 200, 0, 3300);
+                LOG_INFO(" - [%2d] low=%4d, center=%4d, high=%4d", idx, joystick->low, joystick->center, joystick->high);
+        }
 }
 
 static void joystick_task(void *pvParameter)
@@ -134,6 +162,16 @@ QueueHandle_t joystick_init(void)
         return joystick_queue;
 }
 
+void print_joystick_stat(void)
+{
+        uint8_t num_joysticks = count_num_joysticks(joystick_pinmask);
+        for (int idx = 0; idx < num_joysticks; idx++)
+        {
+                joystick_data_t *joystick = &joystick_data[idx];
+                LOG_INFO(" - Joystick [%2d], low:%4d, center:%4d, high:%4d, voltage:%4d", idx, joystick->low, joystick->center, joystick->high, joystick->voltage);
+        }
+}
+
 void joystick_register(const gpio_num_t high_pin, const gpio_num_t low_pin, const gpio_num_t adc_pin, const bool inverted)
 {
         adc_channel_t channel = adc_pin - 1;
@@ -151,6 +189,11 @@ void joystick_register(const gpio_num_t high_pin, const gpio_num_t low_pin, cons
         joystick_data[num_joysticks].low_pin = low_pin;
         joystick_data[num_joysticks].channel = channel;
         joystick_data[num_joysticks].inverted = inverted;
+
+        joystick_data[num_joysticks].voltage = 2000;
+        joystick_data[num_joysticks].center = joystick_data[num_joysticks].voltage;
+        joystick_data[num_joysticks].low = constrain(joystick_data[num_joysticks].voltage - 200, 0, 3300);
+        joystick_data[num_joysticks].high = constrain(joystick_data[num_joysticks].voltage + 200, 0, 3300);
         adc1_config_channel_atten(joystick_data[num_joysticks].channel, ADC_ATTEN_DB_11);
 }
 

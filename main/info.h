@@ -77,7 +77,7 @@
 // 每隔3秒列出Wi-Fi連線狀態
 // 可選: true, false
 // 默認: true
-#define SHOW_CONNECTION_STATUS true
+#define SHOW_CONNECTION_STATUS false
 
 // 訊號強度大於該值時將嘗試建立連線
 // 單位: 分貝毫瓦 - dBm
