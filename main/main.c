@@ -28,12 +28,12 @@ static device_settings_t device_settings;
 void motor_controller_print_stat(motor_group_stat_pkt_t *motor_stat)
 {
 	LOG_INFO("Lcnt:%6d, Rcnt:%6d | Lspd:%6.3f, Rspd:%6.3f | Lacc:%6.3f, Racc:%6.3f | Lpwm:%6.3f, Rpwm:%6.3f | Δd: %6.3f | Δs: %6.3f",
-		 motor_stat->left_motor.counter, motor_stat->right_motor.counter,
-		 motor_stat->left_motor.velocity, motor_stat->right_motor.velocity,
-		 motor_stat->left_motor.acceleration, motor_stat->right_motor.acceleration,
-		 motor_stat->left_motor.duty_cycle, motor_stat->right_motor.duty_cycle,
-		 motor_stat->delta_distance,
-		 motor_stat->delta_velocity);
+			 motor_stat->left_motor.counter, motor_stat->right_motor.counter,
+			 motor_stat->left_motor.velocity, motor_stat->right_motor.velocity,
+			 motor_stat->left_motor.acceleration, motor_stat->right_motor.acceleration,
+			 motor_stat->left_motor.duty_cycle, motor_stat->right_motor.duty_cycle,
+			 motor_stat->delta_distance,
+			 motor_stat->delta_velocity);
 }
 
 void rssi_task()
@@ -94,11 +94,11 @@ void rssi_task()
 
 void ping_task()
 {
-        for (;;)
-        {
-                esp_connection_send_heartbeat(&esp_connection_handle);
-                vTaskDelay(pdMS_TO_TICKS(300));
-        }
+	for (;;)
+	{
+		esp_connection_send_heartbeat(&esp_connection_handle);
+		vTaskDelay(pdMS_TO_TICKS(300));
+	}
 }
 
 void power_switch_task()
@@ -168,7 +168,7 @@ void app_main(void)
 	joystick_calibrate();
 
 	xTaskCreate(rssi_task, "rssi_task", 4096, NULL, 4, NULL);
-        xTaskCreate(ping_task, "ping_task", 4096, NULL, 4, NULL);
+	xTaskCreate(ping_task, "ping_task", 4096, NULL, 4, NULL);
 	xTaskCreate(power_switch_task, "power_switch_task", 4096, NULL, 4, NULL);
 
 	esp_connection_set_unique_peer_mac(&esp_connection_handle, device_settings.remote_conn_mac);
@@ -195,33 +195,33 @@ void app_main(void)
 			ret = espnow_send_data(&espnow_send_param, ESPNOW_PACKET_TYPE_TEXT, &button_event, sizeof(button_event));
 			ESP_ERROR_CHECK_WITHOUT_ABORT(ret);
 
-			char temp[64];
-			switch (button_event.pin)
-			{
-			case GPIO_BUTTON_UP:
-				snprintf(temp, 64, "GPIO_BUTTON_UP, %s", BUTTON_STATE_STRING[button_event.new_state]);
-				break;
-			case GPIO_BUTTON_DOWN:
-				snprintf(temp, 64, "GPIO_BUTTON_DOWN, %s", BUTTON_STATE_STRING[button_event.new_state]);
-				break;
-			case GPIO_BUTTON_LEFT:
-				snprintf(temp, 64, "GPIO_BUTTON_LEFT, %s", BUTTON_STATE_STRING[button_event.new_state]);
-				break;
-			case GPIO_BUTTON_RIGHT:
-				snprintf(temp, 64, "GPIO_BUTTON_RIGHT, %s", BUTTON_STATE_STRING[button_event.new_state]);
-				break;
-			case GPIO_BUTTON_SHOOT:
-				snprintf(temp, 64, "GPIO_BUTTON_SHOOT, %s", BUTTON_STATE_STRING[button_event.new_state]);
-				break;
-			case GPIO_BUTTON_TILT_LEFT:
-				snprintf(temp, 64, "GPIO_BUTTON_TILT_LEFT, %s", BUTTON_STATE_STRING[button_event.new_state]);
-				break;
-			case GPIO_BUTTON_TILT_RIGHT:
-				snprintf(temp, 64, "GPIO_BUTTON_TILT_RIGHT, %s", BUTTON_STATE_STRING[button_event.new_state]);
-				break;
-			default:
-				break;
-			}
+			// char temp[64];
+			// switch (button_event.pin)
+			// {
+			// case GPIO_BUTTON_UP:
+			// 	snprintf(temp, 64, "GPIO_BUTTON_UP, %s", BUTTON_STATE_STRING[button_event.new_state]);
+			// 	break;
+			// case GPIO_BUTTON_DOWN:
+			// 	snprintf(temp, 64, "GPIO_BUTTON_DOWN, %s", BUTTON_STATE_STRING[button_event.new_state]);
+			// 	break;
+			// case GPIO_BUTTON_LEFT:
+			// 	snprintf(temp, 64, "GPIO_BUTTON_LEFT, %s", BUTTON_STATE_STRING[button_event.new_state]);
+			// 	break;
+			// case GPIO_BUTTON_RIGHT:
+			// 	snprintf(temp, 64, "GPIO_BUTTON_RIGHT, %s", BUTTON_STATE_STRING[button_event.new_state]);
+			// 	break;
+			// case GPIO_BUTTON_SHOOT:
+			// 	snprintf(temp, 64, "GPIO_BUTTON_SHOOT, %s", BUTTON_STATE_STRING[button_event.new_state]);
+			// 	break;
+			// case GPIO_BUTTON_TILT_LEFT:
+			// 	snprintf(temp, 64, "GPIO_BUTTON_TILT_LEFT, %s", BUTTON_STATE_STRING[button_event.new_state]);
+			// 	break;
+			// case GPIO_BUTTON_TILT_RIGHT:
+			// 	snprintf(temp, 64, "GPIO_BUTTON_TILT_RIGHT, %s", BUTTON_STATE_STRING[button_event.new_state]);
+			// 	break;
+			// default:
+			// 	break;
+			// }
 			// espnow_send_text(&espnow_send_param, temp);
 		}
 
