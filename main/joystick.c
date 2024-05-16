@@ -151,7 +151,7 @@ QueueHandle_t joystick_init(void)
         joystick_queue = xQueueCreate(BUTTON_QUEUE_DEPTH, sizeof(button_event_t)); // TODO: statically allow memory
         if (joystick_queue == NULL)
         {
-                LOG_ERROR("Create queue falied");
+                LOG_ERROR("Create queue failed");
                 joystick_deinit();
                 return NULL;
         }
