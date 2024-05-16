@@ -16,11 +16,11 @@ typedef struct
         int low, center, high;
 } __packed joystick_data_t;
 
-uint64_t joystick_pinmask = 0;
+static uint64_t joystick_pinmask = 0;
 static esp_adc_cal_characteristics_t adc1_chars = {0};
-joystick_data_t joystick_data[BUTTON_MAX_ARRAY_SIZE];
-QueueHandle_t joystick_queue = NULL;
-TaskHandle_t joystick_task_handle = NULL;
+static joystick_data_t joystick_data[BUTTON_MAX_ARRAY_SIZE];
+static QueueHandle_t joystick_queue = NULL;
+static TaskHandle_t joystick_task_handle = NULL;
 
 static bool adc1_calibration_init(void)
 {
