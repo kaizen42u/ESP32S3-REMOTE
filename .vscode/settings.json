@@ -75,6 +75,7 @@
     "Lspd",
     "MACSTR",
     "MCPWM",
+    "milliwatts",
     "MOTORL",
     "MOTORR",
     "OLED",
