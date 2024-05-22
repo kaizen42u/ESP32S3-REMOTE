@@ -9,7 +9,8 @@ typedef struct
         adc1_channel_t channel;
         button_state_t high_state, low_state;
 
-        bool inverted;
+        float sensitivity; // from 0 to 1 (not including 0), sensitivity decreases when is not 1.
+
         int raw;
         int voltage;
 
@@ -75,10 +76,12 @@ static void update_joystick(joystick_data_t *joystick)
         if (joystick->voltage > joystick->high)
                 joystick->high = joystick->voltage;
 
-        int low_threshold = (joystick->low + joystick->center) / 2;
-        int low_recover_threshold = low_threshold * 1.5;
-        int high_threshold = (joystick->center + joystick->high) / 2;
-        int high_recover_threshold = high_threshold * 0.75;
+        int low_threshold = ((joystick->low + joystick->center) / 2);
+        low_threshold = low_threshold * joystick->sensitivity;
+        int low_recover_threshold = ((low_threshold + joystick->center) / 2);
+        int high_threshold = ((joystick->center + joystick->high) / 2);
+        high_threshold = joystick->high - ((joystick->high - high_threshold) * joystick->sensitivity);
+        int high_recover_threshold = ((joystick->center + high_threshold) / 2);
 
         if (joystick->voltage == 0 || joystick->voltage < low_threshold)
                 joystick->low_state = BUTTON_DOWN;
@@ -172,7 +175,7 @@ void print_joystick_stat(void)
         }
 }
 
-void joystick_register(const gpio_num_t high_pin, const gpio_num_t low_pin, const gpio_num_t adc_pin, const bool inverted)
+void joystick_register(const gpio_num_t high_pin, const gpio_num_t low_pin, const gpio_num_t adc_pin, const float sensitivity)
 {
         adc_channel_t channel = adc_pin - 1;
         if (joystick_pinmask & (1ULL << channel))
@@ -188,7 +191,7 @@ void joystick_register(const gpio_num_t high_pin, const gpio_num_t low_pin, cons
         joystick_data[num_joysticks].high_pin = high_pin;
         joystick_data[num_joysticks].low_pin = low_pin;
         joystick_data[num_joysticks].channel = channel;
-        joystick_data[num_joysticks].inverted = inverted;
+        joystick_data[num_joysticks].sensitivity = sensitivity;
 
         joystick_data[num_joysticks].voltage = 2000;
         joystick_data[num_joysticks].center = joystick_data[num_joysticks].voltage;
