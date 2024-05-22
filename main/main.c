@@ -18,6 +18,7 @@
 #include "joystick.h"
 #include "eeprom.h"
 #include "device_settings.h"
+#include "dictionary.h"
 
 static const char __attribute__((unused)) *TAG = "app_main";
 
@@ -109,8 +110,10 @@ void power_switch_task()
 		// (esp_connection_handle.remote_connected) ? elapsed_time = 0 : elapsed_time++;
 		// (elapsed_time >= TIME_BEFORE_RESET) ? kill_power() : keep_power();
 		if (SHOW_CONNECTION_STATUS)
+		{
 			esp_connection_show_entries(&esp_connection_handle);
-		print_joystick_stat();
+			print_joystick_stat();
+		}
 		vTaskDelay(pdMS_TO_TICKS(3000));
 	}
 }
@@ -161,11 +164,22 @@ void app_main(void)
 	button_register(JOYSTICK_SHIELD_BUTTON_E, BUTTON_CONFIG_ACTIVE_LOW);
 	button_register(JOYSTICK_SHIELD_BUTTON_F, BUTTON_CONFIG_ACTIVE_LOW);
 	button_register(JOYSTICK_SHIELD_BUTTON_K, BUTTON_CONFIG_ACTIVE_LOW);
+	SET_DICTIONARY_BY_NAME(JOYSTICK_SHIELD_BUTTON_A);
+	SET_DICTIONARY_BY_NAME(JOYSTICK_SHIELD_BUTTON_B);
+	SET_DICTIONARY_BY_NAME(JOYSTICK_SHIELD_BUTTON_C);
+	SET_DICTIONARY_BY_NAME(JOYSTICK_SHIELD_BUTTON_D);
+	SET_DICTIONARY_BY_NAME(JOYSTICK_SHIELD_BUTTON_E);
+	SET_DICTIONARY_BY_NAME(JOYSTICK_SHIELD_BUTTON_F);
+	SET_DICTIONARY_BY_NAME(JOYSTICK_SHIELD_BUTTON_K);
 
 	QueueHandle_t joystick_event_queue = joystick_init();
 	joystick_register(GPIO_BUTTON_RIGHT, GPIO_BUTTON_LEFT, JOYSTICK_SHIELD_JOYSTICK_X, true);
 	joystick_register(GPIO_BUTTON_UP, GPIO_BUTTON_DOWN, JOYSTICK_SHIELD_JOYSTICK_Y, false);
 	joystick_calibrate();
+	SET_DICTIONARY_BY_NAME(GPIO_BUTTON_RIGHT);
+	SET_DICTIONARY_BY_NAME(GPIO_BUTTON_LEFT);
+	SET_DICTIONARY_BY_NAME(GPIO_BUTTON_UP);
+	SET_DICTIONARY_BY_NAME(GPIO_BUTTON_DOWN);
 
 	xTaskCreate(rssi_task, "rssi_task", 4096, NULL, 4, NULL);
 	xTaskCreate(ping_task, "ping_task", 4096, NULL, 4, NULL);
@@ -179,7 +193,7 @@ void app_main(void)
 
 		while (xQueueReceive(joystick_event_queue, &button_event, 0))
 		{
-			LOG_INFO("GPIO event: pin %d, state = %s --> %s", button_event.pin, BUTTON_STATE_STRING[button_event.prev_state], BUTTON_STATE_STRING[button_event.new_state]);
+			LOG_INFO("GPIO event: %s, state = %s --> %s", get_from_dictionary(button_event.pin), BUTTON_STATE_STRING[button_event.prev_state], BUTTON_STATE_STRING[button_event.new_state]);
 
 			esp_err_t ret;
 			// LOG_WARNING("sending to peer " MACSTR, MAC2STR(espnow_send_param.dest_mac));
@@ -189,40 +203,11 @@ void app_main(void)
 
 		while (xQueueReceive(button_event_queue, &button_event, 0))
 		{
-			LOG_INFO("GPIO event: pin %d, state = %s --> %s", button_event.pin, BUTTON_STATE_STRING[button_event.prev_state], BUTTON_STATE_STRING[button_event.new_state]);
+			LOG_INFO("GPIO event: %s, state = %s --> %s", get_from_dictionary(button_event.pin), BUTTON_STATE_STRING[button_event.prev_state], BUTTON_STATE_STRING[button_event.new_state]);
 
 			esp_err_t ret;
 			ret = espnow_send_data(&espnow_send_param, ESPNOW_PACKET_TYPE_TEXT, &button_event, sizeof(button_event));
 			ESP_ERROR_CHECK_WITHOUT_ABORT(ret);
-
-			// char temp[64];
-			// switch (button_event.pin)
-			// {
-			// case GPIO_BUTTON_UP:
-			// 	snprintf(temp, 64, "GPIO_BUTTON_UP, %s", BUTTON_STATE_STRING[button_event.new_state]);
-			// 	break;
-			// case GPIO_BUTTON_DOWN:
-			// 	snprintf(temp, 64, "GPIO_BUTTON_DOWN, %s", BUTTON_STATE_STRING[button_event.new_state]);
-			// 	break;
-			// case GPIO_BUTTON_LEFT:
-			// 	snprintf(temp, 64, "GPIO_BUTTON_LEFT, %s", BUTTON_STATE_STRING[button_event.new_state]);
-			// 	break;
-			// case GPIO_BUTTON_RIGHT:
-			// 	snprintf(temp, 64, "GPIO_BUTTON_RIGHT, %s", BUTTON_STATE_STRING[button_event.new_state]);
-			// 	break;
-			// case GPIO_BUTTON_SHOOT:
-			// 	snprintf(temp, 64, "GPIO_BUTTON_SHOOT, %s", BUTTON_STATE_STRING[button_event.new_state]);
-			// 	break;
-			// case GPIO_BUTTON_TILT_LEFT:
-			// 	snprintf(temp, 64, "GPIO_BUTTON_TILT_LEFT, %s", BUTTON_STATE_STRING[button_event.new_state]);
-			// 	break;
-			// case GPIO_BUTTON_TILT_RIGHT:
-			// 	snprintf(temp, 64, "GPIO_BUTTON_TILT_RIGHT, %s", BUTTON_STATE_STRING[button_event.new_state]);
-			// 	break;
-			// default:
-			// 	break;
-			// }
-			// espnow_send_text(&espnow_send_param, temp);
 		}
 
 		espnow_event_t espnow_evt;

@@ -29,7 +29,7 @@ void device_settings_print(device_settings_t *device_settings)
 
 void device_settings_init(device_settings_t *device_settings)
 {
-        esp_err_t err;
+        esp_err_t err; 
 
         device_settings_default(device_settings);
         err = eeprom_get_entry(&eeprom_handle, device_settings, sizeof(device_settings_t));

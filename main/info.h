@@ -4,8 +4,8 @@
 
 // Show Wi-Fi connection status every 3 seconds
 // Options: true, false
-// Default: true
-#define SHOW_CONNECTION_STATUS true
+// Default: false
+#define SHOW_CONNECTION_STATUS false
 
 // Clear old connections when uploading new code (Clears ROM)
 // Options: true, false
