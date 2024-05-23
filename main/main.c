@@ -173,7 +173,7 @@ void app_main(void)
 	SET_DICTIONARY_BY_NAME(JOYSTICK_SHIELD_BUTTON_K);
 
 	QueueHandle_t joystick_event_queue = joystick_init();
-	joystick_register(GPIO_BUTTON_UP, GPIO_BUTTON_DOWN, JOYSTICK_SHIELD_JOYSTICK_Y, 1);
+	joystick_register(GPIO_BUTTON_UP, GPIO_BUTTON_DOWN, JOYSTICK_SHIELD_JOYSTICK_Y, 0.5);
 	joystick_register(GPIO_BUTTON_RIGHT, GPIO_BUTTON_LEFT, JOYSTICK_SHIELD_JOYSTICK_X, 0.02);
 	joystick_calibrate();
 	SET_DICTIONARY_BY_NAME(GPIO_BUTTON_RIGHT);
@@ -193,17 +193,20 @@ void app_main(void)
 
 		while (xQueueReceive(joystick_event_queue, &button_event, 0))
 		{
-			LOG_INFO("GPIO event: %s, state = %s --> %s", get_from_dictionary(button_event.pin), BUTTON_STATE_STRING[button_event.prev_state], BUTTON_STATE_STRING[button_event.new_state]);
+			LOG_INFO("Joystick event: %-17s is now %-16s",
+					 get_from_dictionary(button_event.pin),
+					 BUTTON_STATE_STRING[button_event.new_state]);
 
 			esp_err_t ret;
-			// LOG_WARNING("sending to peer " MACSTR, MAC2STR(espnow_send_param.dest_mac));
 			ret = espnow_send_data(&espnow_send_param, ESPNOW_PACKET_TYPE_TEXT, &button_event, sizeof(button_event));
 			ESP_ERROR_CHECK_WITHOUT_ABORT(ret);
 		}
 
 		while (xQueueReceive(button_event_queue, &button_event, 0))
 		{
-			LOG_INFO("GPIO event: %s, state = %s --> %s", get_from_dictionary(button_event.pin), BUTTON_STATE_STRING[button_event.prev_state], BUTTON_STATE_STRING[button_event.new_state]);
+			LOG_INFO("Button event: %-24s is now %-16s",
+					 get_from_dictionary(button_event.pin),
+					 BUTTON_STATE_STRING[button_event.new_state]);
 
 			esp_err_t ret;
 			ret = espnow_send_data(&espnow_send_param, ESPNOW_PACKET_TYPE_TEXT, &button_event, sizeof(button_event));

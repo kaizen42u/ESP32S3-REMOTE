@@ -88,22 +88,22 @@ static void button_task(void *pvParameter)
                         button_state_t old_state = button_data[idx].state;
                         switch (button_data[idx].state)
                         {
-                        case BUTTON_DOWN:
+                        case BUTTON_PRESSED:
                                 if (button_up(&button_data[idx]))
-                                        button_data[idx].state = BUTTON_UP;
+                                        button_data[idx].state = BUTTON_RELEASED;
                                 else if (esp_timer_get_time() - button_data[idx].down_time_us > BUTTON_LONG_PRESS_DURATION_US)
-                                        button_data[idx].state = BUTTON_LONG;
+                                        button_data[idx].state = BUTTON_HELD_DOWN;
                                 break;
-                        case BUTTON_UP:
+                        case BUTTON_RELEASED:
                                 if (button_down(&button_data[idx]))
                                 {
                                         button_data[idx].down_time_us = esp_timer_get_time();
-                                        button_data[idx].state = BUTTON_DOWN;
+                                        button_data[idx].state = BUTTON_PRESSED;
                                 }
                                 break;
-                        case BUTTON_LONG:
+                        case BUTTON_HELD_DOWN:
                                 if (button_up(&button_data[idx]))
-                                        button_data[idx].state = BUTTON_UP;
+                                        button_data[idx].state = BUTTON_RELEASED;
                                 break;
                         default:
                                 LOG_ERROR("unhandled switch statement [%d], aborting", button_data[idx].state);
@@ -172,12 +172,12 @@ void button_register(const gpio_num_t pin, const button_config_active_t inverted
         if (button_data[num_buttons].inverted == BUTTON_CONFIG_ACTIVE_LOW)
         {
                 button_data[num_buttons].history = 0xffff;
-                button_data[num_buttons].state = (gpio_get_level(button_data[num_buttons].pin) ? BUTTON_UP : BUTTON_DOWN);
+                button_data[num_buttons].state = (gpio_get_level(button_data[num_buttons].pin) ? BUTTON_RELEASED : BUTTON_PRESSED);
         }
         else
         {
                 button_data[num_buttons].history = 0x0000;
-                button_data[num_buttons].state = (gpio_get_level(button_data[num_buttons].pin) ? BUTTON_DOWN : BUTTON_UP);
+                button_data[num_buttons].state = (gpio_get_level(button_data[num_buttons].pin) ? BUTTON_PRESSED : BUTTON_RELEASED);
         }
 }
 

@@ -81,14 +81,14 @@ static void update_joystick(joystick_data_t *joystick)
         int high_recover_threshold = ((joystick->_center + high_threshold) / 2);
 
         if (joystick->_voltage == 0 || joystick->_voltage < low_threshold)
-                joystick->_low_state = BUTTON_DOWN;
+                joystick->_low_state = BUTTON_PRESSED;
         if (joystick->_voltage > high_threshold)
-                joystick->_high_state = BUTTON_DOWN;
+                joystick->_high_state = BUTTON_PRESSED;
 
         if (joystick->_voltage > low_recover_threshold && joystick->_voltage < high_recover_threshold)
         {
-                joystick->_low_state = BUTTON_UP;
-                joystick->_high_state = BUTTON_UP;
+                joystick->_low_state = BUTTON_RELEASED;
+                joystick->_high_state = BUTTON_RELEASED;
         }
 
         if (joystick->_low_state != old_low_state)

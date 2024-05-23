@@ -26,9 +26,9 @@
 // Indicates the button state
 typedef enum
 {
-        BUTTON_DOWN, // The button is `pressed`
-        BUTTON_UP,   // The button is `released`
-        BUTTON_LONG, // The button is being `held` for more than one second
+        BUTTON_PRESSED, // The button is `pressed`
+        BUTTON_RELEASED,   // The button is `released`
+        BUTTON_HELD_DOWN, // The button is being `held` for more than one second
         BUTTON_ERROR
 } button_state_t;
 
@@ -40,9 +40,9 @@ typedef enum
 } button_config_active_t;
 
 static const char __attribute__((unused)) * BUTTON_STATE_STRING[] = {
-    "BUTTON_DOWN",
-    "BUTTON_UP",
-    "BUTTON_LONG",
+    "BUTTON_PRESSED",
+    "BUTTON_RELEASED",
+    "BUTTON_HELD_DOWN",
     "BUTTON_ERROR"};
 
 // Instance of button state event

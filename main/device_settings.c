@@ -14,7 +14,7 @@ void device_settings_default(device_settings_t *device_settings)
         memset(device_settings, 0, sizeof(device_settings_t));
         eeprom_default_config(&eeprom_handle);
         memcpy(device_settings->time, __TIME__, 8);
-        memcpy(device_settings->date, __DATE__, 11);
+        memcpy(device_settings->date, __DATE__, 11); 
         memcpy(device_settings->remote_conn_mac, broadcast_mac, ESP_NOW_ETH_ALEN);
         device_settings->salt = esp_random();
 }
